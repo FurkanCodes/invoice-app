@@ -1,0 +1,13 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Database
+/appsettings.Development.json
+
+# Build outputs
+/dist/
+/node_modules/
