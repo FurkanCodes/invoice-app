@@ -8,7 +8,7 @@ obj/
 # Database
 # Configuration files
 src/InvoiceApp.API/appsettings.json
-src/InvoiceApp.API/appsettings.*.json
+src/InvoiceApp.API/appsettings.Development.json
 
 # Sensitive data
 secrets.json
