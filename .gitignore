@@ -6,7 +6,13 @@ obj/
 *.suo
 
 # Database
-/appsettings.Development.json
+# Configuration files
+src/InvoiceApp.API/appsettings.json
+src/InvoiceApp.API/appsettings.*.json
+
+# Sensitive data
+secrets.json
+*.env
 
 # Build outputs
 /dist/
