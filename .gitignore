@@ -1,0 +1,60 @@
+### .NET ###
+src/**/bin/
+src/**/obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+### Build Results ###
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+
+### Visual Studio ###
+.vscode/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+### Database ###
+*.mdf
+*.ldf
+*.ndf
+
+### Configuration ###
+src/InvoiceApp.API/appsettings.json
+src/InvoiceApp.API/appsettings.Development.json
+secrets.json
+*.env
+
+### Node ###
+/dist/
+/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### IDE ###
+.idea/
+*.swp
+*.swo
+*._*
+.DS_Store
+
+### Logs ###
+*.log
+logs/
