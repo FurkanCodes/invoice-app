@@ -14,4 +14,8 @@ public decimal Amount { get; set; }
 
 public DateTime DueDate { get; set; }
 
+public DateTime? DeletedAt { get; set; }
+
+public bool IsDeleted { get; set; }
+
 }

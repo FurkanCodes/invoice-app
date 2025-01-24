@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using InvoiceApp.Application.Features.Invoices.Commands;
 using System.Diagnostics;
 using InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
+using InvoiceApp.Application.Features.Invoices.Queries.GetDeletedInvoices;
 
 namespace InvoiceApp.API.Controllers;
 
@@ -49,4 +50,17 @@ public async Task<IActionResult> DeleteInvoice(Guid id)
     await _mediator.Send(command);
     return NoContent(); // ✅ 204 status
 }
+
+    [HttpGet("all-deleted")] // 👈 Unique route
+    public async Task<IActionResult> GetAllDeletedInvoices(
+        [FromQuery] int pageNumber = 1, 
+        [FromQuery] int pageSize = 10)
+    {
+        var query = new GetDeletedInvoicesQuery { 
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+        return Ok(await _mediator.Send(query));
+    }
+
 }
