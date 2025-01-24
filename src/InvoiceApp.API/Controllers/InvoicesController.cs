@@ -3,9 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using InvoiceApp.Application.Features.Invoices.Commands;
 using InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 using InvoiceApp.Application.Features.Invoices.Queries.GetDeletedInvoices;
-using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using InvoiceApp.Application.Features.Invoices.Commands;
+
 using InvoiceApp.Application.Features.Invoices.Queries;
 
 namespace InvoiceApp.API.Controllers;

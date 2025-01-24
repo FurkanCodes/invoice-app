@@ -8,10 +8,9 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 
-// Add services from Application and Infrastructure layers
 builder.Services
-    .AddApplication()    // Registers MediatR and validators
-    .AddInfrastructure(builder.Configuration); // 👈 Pass the configuration
+    .AddApplication()   
+    .AddInfrastructure(builder.Configuration); 
 
 
 builder.Services.AddControllers();
@@ -40,6 +39,7 @@ builder.Services.AddSwaggerGen(options =>
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
