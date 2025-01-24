@@ -28,21 +28,24 @@ public class InvoicesController(IMediator mediator) : ControllerBase
                 return Ok(invoiceDto);
         }
 
-    [HttpGet]
-        public async Task<IActionResult> GetAllInvoices(
+[HttpGet("all-invoices")]
+public async Task<IActionResult> GetAllInvoices(
     [FromQuery] int pageNumber = 1, 
-    [FromQuery] int pageSize = 10)
-        {
+    [FromQuery] int pageSize = 10,
+    [FromQuery] DateTime? startDate = null,
+    [FromQuery] DateTime? endDate = null)
+{
     var query = new GetAllInvoicesQuery 
     { 
         PageNumber = pageNumber,
-        PageSize = pageSize
+        PageSize = pageSize,
+        StartDate = startDate,
+        EndDate = endDate
     };
     
     var result = await _mediator.Send(query);
     return Ok(result);
-
-        }
+}
   [HttpDelete("{id}")]
 public async Task<IActionResult> DeleteInvoice(Guid id)
 {

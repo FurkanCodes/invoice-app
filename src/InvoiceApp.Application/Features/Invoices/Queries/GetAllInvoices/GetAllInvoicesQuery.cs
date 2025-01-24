@@ -6,6 +6,8 @@ namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 
 public class GetAllInvoicesQuery : IRequest<PagedResponse<InvoiceDto>>
 {
-    public int PageNumber { get; set; } = 1;  // Default to first page
-    public int PageSize { get; set; } = 10;   // Default page size
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
 }

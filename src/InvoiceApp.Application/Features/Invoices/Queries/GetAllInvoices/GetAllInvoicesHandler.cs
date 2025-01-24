@@ -1,15 +1,12 @@
 // GetAllInvoicesHandler.cs
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using InvoiceApp.Infrastructure.Persistence;
 using InvoiceApp.Domain.Exceptions;
+using System.Linq.Expressions;
 
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 
-// GetAllInvoicesHandler.cs
 public class GetAllInvoicesHandler(AppDbContext context) 
     : IRequestHandler<GetAllInvoicesQuery, PagedResponse<InvoiceDto>>
 {
@@ -20,16 +17,25 @@ public class GetAllInvoicesHandler(AppDbContext context)
         // Validate input
         if (query.PageNumber < 1) query.PageNumber = 1;
         if (query.PageSize < 1) query.PageSize = 10;
+        if (query.StartDate > query.EndDate)
+            throw new DomainException("End date cannot be before start date");
 
-        // Base query
+        // Base query with date filtering
         var baseQuery = context.Invoices.AsNoTracking();
 
-        // Get total count (without pagination)
+        // Apply date filters
+        if (query.StartDate.HasValue)
+            baseQuery = baseQuery.Where(i => i.DueDate >= query.StartDate.Value.ToUniversalTime());
+
+        if (query.EndDate.HasValue)
+            baseQuery = baseQuery.Where(i => i.DueDate <= query.EndDate.Value.ToUniversalTime());
+
+        // Get total count
         var totalCount = await baseQuery.CountAsync(ct);
 
-        // Apply pagination
+        // Apply pagination and ordering
         var items = await baseQuery
-            .OrderBy(i => i.DueDate) // Always order before pagination!
+            .OrderBy(i => i.DueDate)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(i => new InvoiceDto 
@@ -46,7 +52,8 @@ public class GetAllInvoicesHandler(AppDbContext context)
             Items = items,
             TotalCount = totalCount,
             PageNumber = query.PageNumber,
-            PageSize = query.PageSize
+            PageSize = query.PageSize,
+            
         };
     }
 }
