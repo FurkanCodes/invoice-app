@@ -13,9 +13,10 @@ public class Invoice
     public DateTime? DeletedAt { get; private set; }  
 
 
-public void  SoftDelete(Guid invoiceId) {
-      IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
+public void SoftDelete()  
+{
+    IsDeleted = true;
+    DeletedAt = DateTime.UtcNow;
 }
 
     // Private constructor for EF Core (we’ll add later)

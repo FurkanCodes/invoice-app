@@ -42,11 +42,11 @@ public class InvoicesController(IMediator mediator) : ControllerBase
     return Ok(result);
 
         }
-    [HttpDelete]
-    public IActionResult DeleteInvoice([FromBody] Guid id)
-    {
-        var command = new DeleteInvoiceCommand { InvoiceId = id };
-        var result = _mediator.Send(command);
-        return Ok(result);
-    }
+  [HttpDelete("{id}")]
+public async Task<IActionResult> DeleteInvoice(Guid id)
+{
+    var command = new DeleteInvoiceCommand { InvoiceId = id };
+    await _mediator.Send(command);
+    return NoContent(); // ✅ 204 status
+}
 }
