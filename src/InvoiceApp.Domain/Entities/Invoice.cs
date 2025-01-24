@@ -9,7 +9,18 @@ public class Invoice
     public decimal Amount { get; private set; }
     public DateTime DueDate { get; private set; }
 
+    public bool IsDeleted { get; private set; }  
+    public DateTime? DeletedAt { get; private set; }  
+
+
+public void  SoftDelete(Guid invoiceId) {
+      IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+}
+
     // Private constructor for EF Core (we’ll add later)
+
+
     private Invoice() { }
 
      public Invoice(string clientName, decimal amount, DateTime dueDate)

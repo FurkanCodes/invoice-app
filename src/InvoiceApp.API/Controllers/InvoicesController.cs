@@ -18,20 +18,20 @@ public class InvoicesController(IMediator mediator) : ControllerBase
         var invoiceId = await _mediator.Send(command);
         return Ok(new { InvoiceId = invoiceId });
     }
-[HttpGet("{id}")]
-public async Task<IActionResult> GetInvoiceById(Guid id)
-{
+    [HttpGet("{id}")]
+        public async Task<IActionResult> GetInvoiceById(Guid id)
+            {
 
-    var query = new GetInvoiceByIdQuery { InvoiceId = id };
-    var invoiceDto = await _mediator.Send(query);
-    return Ok(invoiceDto);
-}
-// InvoicesController.cs
-[HttpGet]
-public async Task<IActionResult> GetAllInvoices(
+                var query = new GetInvoiceByIdQuery { InvoiceId = id };
+                var invoiceDto = await _mediator.Send(query);
+                return Ok(invoiceDto);
+        }
+
+    [HttpGet]
+        public async Task<IActionResult> GetAllInvoices(
     [FromQuery] int pageNumber = 1, 
     [FromQuery] int pageSize = 10)
-{
+        {
     var query = new GetAllInvoicesQuery 
     { 
         PageNumber = pageNumber,
@@ -40,5 +40,13 @@ public async Task<IActionResult> GetAllInvoices(
     
     var result = await _mediator.Send(query);
     return Ok(result);
-}
+
+        }
+    [HttpDelete]
+    public IActionResult DeleteInvoice([FromBody] Guid id)
+    {
+        var command = new DeleteInvoiceCommand { InvoiceId = id };
+        var result = _mediator.Send(command);
+        return Ok(result);
+    }
 }

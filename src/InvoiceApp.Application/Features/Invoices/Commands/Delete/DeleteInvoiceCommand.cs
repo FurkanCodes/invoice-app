@@ -1,11 +1,11 @@
-using System;
+// DeleteInvoiceCommand.cs
+using MediatR;
 using System.ComponentModel.DataAnnotations;
 
-namespace InvoiceApp.Application.Features.Invoices.Commands.Delete;
+namespace InvoiceApp.Application.Features.Invoices.Commands;
 
-public class DeleteInvoiceCommand
+public class DeleteInvoiceCommand : IRequest<Unit> // Unit = void in MediatR
 {
-    [Required(ErrorMessage = "Invoice Id is required")]
-    public string InvoiceId { get; set;}= string.Empty;
-
+    [Required(ErrorMessage = "Invoice ID is required")]
+    public Guid InvoiceId { get; set; }
 }
