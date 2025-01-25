@@ -1,5 +1,7 @@
 using InvoiceApp.Application.Common.Interfaces;
+using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Infrastructure.Persistence;
+using InvoiceApp.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,8 +25,9 @@ public static class InfrastructureExtensions
 
         // Add this line to register the DbContext interface
         services.AddScoped<IApplicationDbContext>(provider =>
-            provider.GetRequiredService<AppDbContext>());
-
+        provider.GetRequiredService<AppDbContext>());
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
         return services;
     }
 }

@@ -6,6 +6,8 @@ namespace InvoiceApp.Application.Common.Interfaces
   public interface IApplicationDbContext
   {
     DbSet<Invoice> Invoices { get; set; }
+
+    DbSet<User> Users { get; set; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
   }
 }

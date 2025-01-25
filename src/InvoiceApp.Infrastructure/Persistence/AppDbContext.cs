@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 {
     public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<User> Users { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -61,6 +62,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 
         });
+
+        modelBuilder.Entity<User>(entity =>
+          {
+              entity.HasKey(u => u.Id);
+
+              entity.Property(u => u.Email)
+                  .IsRequired()
+                  .HasMaxLength(255);
+
+              entity.Property(u => u.PasswordHash)
+                  .IsRequired();
+
+              entity.Property(u => u.PasswordSalt)
+                  .IsRequired();
+
+              entity.Property(u => u.CreatedAt)
+                  .IsRequired()
+                  .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+              // Add unique index on email
+              entity.HasIndex(u => u.Email)
+                  .IsUnique();
+          });
 
         base.OnModelCreating(modelBuilder);
     }

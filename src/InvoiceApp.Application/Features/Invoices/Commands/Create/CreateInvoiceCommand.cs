@@ -15,4 +15,6 @@ public class CreateInvoiceCommand : IRequest<Guid>
     public string PaymentTerms { get; set; } = "NET30";
     public string InvoiceNumber { get; set; } = string.Empty;
     public DateTime IssueDate { get; set; }
+
+
 }
