@@ -42,6 +42,12 @@ public class Invoice
 
     [Required]
     public DateTime IssueDate { get; private set; }
+    public InvoiceStatus Status { get; set; }
+    // Foreign key
+    public Guid UserId { get; set; }
+
+    // Make the navigation property nullable
+    public User? User { get; set; }
     public void SoftDelete()
     {
         IsDeleted = true;
@@ -58,7 +64,10 @@ public class Invoice
         InvoiceNumber = string.Empty;
     }
 
-    public Invoice(string clientName, decimal amount, DateTime dueDate, string taxId, string companyRegistration, string legalAddress, string currency, decimal taxRate, string paymentTerms, string invoiceNumber, DateTime issueDate)
+    public Invoice(Guid userId, string clientName, decimal amount, DateTime dueDate,
+    string taxId, string companyRegistration, string legalAddress,
+    string currency, decimal taxRate, string paymentTerms,
+    string invoiceNumber, DateTime issueDate)
     {
         if (string.IsNullOrEmpty(clientName)) throw new DomainException("Client name is required.");
         if (amount <= 0) throw new DomainException("Amount must be positive.");
@@ -71,7 +80,7 @@ public class Invoice
         Id = Guid.NewGuid();
 
         ClientName = clientName;
-
+        UserId = userId;
         Amount = amount;
 
         DueDate = dueDate;
@@ -89,7 +98,16 @@ public class Invoice
         PaymentTerms = paymentTerms;
 
         InvoiceNumber = invoiceNumber;
-
+        Status = InvoiceStatus.Draft;
         IssueDate = issueDate;
     }
+}
+
+public enum InvoiceStatus
+{
+    Draft,
+    Pending,
+    Paid,
+    Overdue,
+    Cancelled
 }

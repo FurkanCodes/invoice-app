@@ -54,11 +54,14 @@ builder.Services.AddSwaggerGen(options =>
     // Add JWT Authentication to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme.\r\n\r\n" +
+                    "Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\n" +
+                    "Example: \"Bearer 12345abcdef\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http, // Changed from ApiKey to Http
+        Scheme = "Bearer",  // Specify Bearer scheme
+        BearerFormat = "JWT" // Specify JWT format
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -80,55 +83,45 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSecret!))
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!)
+            ),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = "name",
+            RoleClaimType = "role"
+        };
+    });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 
-// using (var scope = app.Services.CreateScope())
-// {
-//     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//     try
-//     {
-//         await dbContext.Database.MigrateAsync();
-//     }
-//     catch (Exception ex)
-//     {
-//         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-//         logger.LogError(ex, "An error occurred while migrating the database.");
-//         throw;
-//     }
-// }
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Invoice API v1");
-        c.RoutePrefix = "swagger";
-    });
+  {
+      c.SwaggerEndpoint("/swagger/v1/swagger.json", "Invoice API v1");
+      c.RoutePrefix = "swagger";
+      c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+      c.DefaultModelsExpandDepth(-1);
+      c.EnableDeepLinking();
+      c.DisplayRequestDuration();
+  });
 }
 
 // Health check endpoint

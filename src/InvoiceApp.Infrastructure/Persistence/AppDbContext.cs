@@ -85,7 +85,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
               entity.HasIndex(u => u.Email)
                   .IsUnique();
           });
+        modelBuilder.Entity<Invoice>()
+                    .HasOne(i => i.User)
+                    .WithMany(u => u.Invoices)
+                    .HasForeignKey(i => i.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
+        // Add any additional configuration like indexes
+        modelBuilder.Entity<Invoice>()
+            .HasIndex(i => i.InvoiceNumber)
+            .IsUnique();
+
+        modelBuilder.Entity<Invoice>()
+            .Property(i => i.Amount)
+            .HasPrecision(18, 2);
         base.OnModelCreating(modelBuilder);
     }
 }

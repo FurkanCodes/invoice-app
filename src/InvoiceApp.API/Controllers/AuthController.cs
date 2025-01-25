@@ -10,6 +10,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 {
     private readonly IAuthService _authService = authService;
 
+
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponseDto>> Register(UserRegisterDto request)
     {

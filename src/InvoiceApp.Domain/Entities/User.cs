@@ -14,4 +14,6 @@ public class User
   public byte[] PasswordSalt { get; set; } = [];
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+  public ICollection<Invoice> Invoices { get; set; } = [];
+
 }

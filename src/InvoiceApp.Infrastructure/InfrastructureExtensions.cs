@@ -28,6 +28,8 @@ public static class InfrastructureExtensions
         provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IUserService, UserService>();
         return services;
     }
 }

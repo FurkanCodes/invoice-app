@@ -1,7 +1,9 @@
 using InvoiceApp.Domain.Entities;
 
-namespace InvoiceApp.Application.Interfaces;
-public interface ITokenService
+namespace InvoiceApp.Application.Interfaces
 {
-  (string token, DateTime expiration) GenerateToken(User user);
+  public interface ITokenService
+  {
+    (string token, DateTime expiration) GenerateToken(User user);
+  }
 }
