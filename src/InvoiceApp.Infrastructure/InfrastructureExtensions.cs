@@ -1,4 +1,4 @@
-// 📂 Infrastructure/InfrastructureExtensions.cs
+using InvoiceApp.Application.Common.Interfaces;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,9 +12,18 @@ public static class InfrastructureExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Register PostgreSQL
         services.AddDbContext<AppDbContext>(options =>
-         options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(
+                configuration.GetConnectionString("DefaultConnection"),
+                npgsqlOptions =>
+                {
+                    npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                }
+            ));
+
+        // Add this line to register the DbContext interface
+        services.AddScoped<IApplicationDbContext>(provider =>
+            provider.GetRequiredService<AppDbContext>());
 
         return services;
     }

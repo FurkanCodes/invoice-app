@@ -1,17 +1,18 @@
 // GetAllInvoicesHandler.cs
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using InvoiceApp.Infrastructure.Persistence;
+
 using InvoiceApp.Domain.Exceptions;
 using System.Linq.Expressions;
-
+using InvoiceApp.Application.Interfaces;
+using InvoiceApp.Application.Common.Interfaces;
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 
-public class GetAllInvoicesHandler(AppDbContext context) 
+public class GetAllInvoicesHandler(IApplicationDbContext context)
     : IRequestHandler<GetAllInvoicesQuery, PagedResponse<InvoiceDto>>
 {
     public async Task<PagedResponse<InvoiceDto>> Handle(
-        GetAllInvoicesQuery query, 
+        GetAllInvoicesQuery query,
         CancellationToken ct)
     {
         // Validate input
@@ -38,7 +39,7 @@ public class GetAllInvoicesHandler(AppDbContext context)
             .OrderBy(i => i.DueDate)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(i => new InvoiceDto 
+            .Select(i => new InvoiceDto
             {
                 Id = i.Id,
                 ClientName = i.ClientName,
@@ -53,7 +54,7 @@ public class GetAllInvoicesHandler(AppDbContext context)
             TotalCount = totalCount,
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
-            
+
         };
     }
 }

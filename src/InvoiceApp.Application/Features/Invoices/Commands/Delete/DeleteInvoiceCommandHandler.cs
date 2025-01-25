@@ -1,15 +1,17 @@
 // DeleteInvoiceCommandHandler.cs
 using MediatR;
 using InvoiceApp.Domain.Exceptions;
-using InvoiceApp.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
+using InvoiceApp.Application.Interfaces;
+using InvoiceApp.Application.Common.Interfaces;
 
 namespace InvoiceApp.Application.Features.Invoices.Commands;
-public class DeleteInvoiceCommandHandler(AppDbContext context)
+public class DeleteInvoiceCommandHandler(IApplicationDbContext context)
     : IRequestHandler<DeleteInvoiceCommand, Unit>
 {
     public async Task<Unit> Handle(
-        DeleteInvoiceCommand command, 
+        DeleteInvoiceCommand command,
         CancellationToken ct)
     {
         var invoice = await context.Invoices

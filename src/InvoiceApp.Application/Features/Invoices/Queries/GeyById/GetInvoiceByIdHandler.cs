@@ -2,14 +2,16 @@ using MediatR;
 
 using InvoiceApp.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using InvoiceApp.Infrastructure.Persistence;
+
+using InvoiceApp.Application.Interfaces;
+using InvoiceApp.Application.Common.Interfaces;
 
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetInvoiceById
 {
-    public class GetInvoiceByIdQueryHandler(AppDbContext context)
+    public class GetInvoiceByIdQueryHandler(IApplicationDbContext context)
             : IRequestHandler<GetInvoiceByIdQuery, InvoiceDto>
     {
-        private readonly AppDbContext _context = context;
+        private readonly IApplicationDbContext _context = context;
 
         public async Task<InvoiceDto> Handle(
             GetInvoiceByIdQuery query,
@@ -19,7 +21,7 @@ namespace InvoiceApp.Application.Features.Invoices.Queries.GetInvoiceById
             var invoice = await _context.Invoices
                 .AsNoTracking()
                 .FirstOrDefaultAsync(i => i.Id == query.InvoiceId, ct) ?? throw new DomainException("Invoice not found");
-                
+
             return new InvoiceDto
             {
                 Id = invoice.Id,
