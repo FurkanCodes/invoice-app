@@ -14,6 +14,8 @@ public class RegisterCommandHandler(IAuthService authService) : IRequestHandler<
       CancellationToken cancellationToken)
   {
     var userDto = new UserRegisterDto(request.Email, request.Password);
-    return await _authService.Register(userDto);
+    var result = await _authService.Register(userDto);
+    Console.WriteLine(result);
+    return result;
   }
 }

@@ -31,8 +31,18 @@ public class AuthService(AppDbContext context, ITokenService tokenService) : IAu
     await context.SaveChangesAsync();
 
     // Generate JWT
-    var (token, expiration) = tokenService.GenerateToken(user);
-    return new AuthResponseDto(token, expiration);
+  try 
+    {
+        var (token, expiration) = tokenService.GenerateToken(user);
+        Console.WriteLine($"Generated token: {token}");
+        Console.WriteLine($"Expiration: {expiration}");
+        return new AuthResponseDto(token, expiration);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
+        throw;
+    }
   }
   public async Task<AuthResponseDto> Login(UserLoginDto userDto)
   {
