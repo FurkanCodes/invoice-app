@@ -15,5 +15,6 @@ public class User
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
   public ICollection<Invoice> Invoices { get; set; } = [];
+  public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 
 }

@@ -6,8 +6,8 @@ using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Domain.Entities;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-
-public class AuthService(AppDbContext context, ITokenService tokenService) : IAuthService
+using Microsoft.AspNetCore.Http;
+public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor) : IAuthService
 {
 
   public async Task<AuthResponseDto> Register(UserRegisterDto userDto)
@@ -30,24 +30,45 @@ public class AuthService(AppDbContext context, ITokenService tokenService) : IAu
     context.Users.Add(user);
     await context.SaveChangesAsync();
 
-    // Generate JWT
-  try 
+    // Generate tokens
+    try
     {
-        var (token, expiration) = tokenService.GenerateToken(user);
-        Console.WriteLine($"Generated token: {token}");
-        Console.WriteLine($"Expiration: {expiration}");
-        return new AuthResponseDto(token, expiration);
+      var (token, expiration) = tokenService.GenerateAccessToken(user);
+      var refreshToken = tokenService.GenerateRefreshToken();
+
+      // Save refresh token
+      await context.RefreshTokens.AddAsync(new RefreshToken
+      {
+        Token = refreshToken,
+        UserId = user.Id,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        User = user
+      });
+      await context.SaveChangesAsync();
+
+      // Set refresh token cookie
+      httpContextAccessor.HttpContext?.Response.Cookies.Append(
+          "refreshToken",
+          refreshToken,
+          new CookieOptions
+          {
+            HttpOnly = true,
+            Secure = true,
+            Expires = DateTime.UtcNow.AddDays(7),
+            SameSite = SameSiteMode.Strict
+          });
+
+      return new AuthResponseDto(token, expiration, refreshToken);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
-        throw;
+      Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
+      throw;
     }
   }
   public async Task<AuthResponseDto> Login(UserLoginDto userDto)
   {
-    var user = await context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
-    if (user == null) throw new UnauthorizedAccessException("Invalid credentials");
+    var user = await context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email) ?? throw new UnauthorizedAccessException("Invalid credentials");
 
     // Verify password
     using var hmac = new HMACSHA512(user.PasswordSalt);
@@ -55,7 +76,32 @@ public class AuthService(AppDbContext context, ITokenService tokenService) : IAu
 
     if (!computedHash.SequenceEqual(user.PasswordHash))
       throw new UnauthorizedAccessException("Invalid credentials");
-    var (token, expiration) = tokenService.GenerateToken(user);
-    return new AuthResponseDto(token, expiration);
+    var (accessToken, accessExpiration) = tokenService.GenerateAccessToken(user);
+    var refreshToken = tokenService.GenerateRefreshToken();
+
+    await context.RefreshTokens.AddAsync(new RefreshToken
+    {
+      Token = refreshToken,
+      UserId = user.Id,
+      ExpiresAt = DateTime.UtcNow.AddDays(7),
+      User = user  // Add this line
+    });
+    await context.SaveChangesAsync();
+
+
+
+    httpContextAccessor.HttpContext?.Response.Cookies.Append(
+           "refreshToken",
+           refreshToken,
+           new CookieOptions
+           {
+             HttpOnly = true,
+             Secure = true,  // For HTTPS only
+             Expires = DateTime.UtcNow.AddDays(7),
+             SameSite = SameSiteMode.Strict
+           });
+
+    return new AuthResponseDto(accessToken, accessExpiration, refreshToken);
+
   }
 }

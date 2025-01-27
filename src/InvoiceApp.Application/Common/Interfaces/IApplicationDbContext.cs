@@ -8,6 +8,9 @@ namespace InvoiceApp.Application.Common.Interfaces
     DbSet<Invoice> Invoices { get; set; }
 
     DbSet<User> Users { get; set; }
+
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
   }
 }

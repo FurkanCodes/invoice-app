@@ -4,6 +4,7 @@ namespace InvoiceApp.Application.Interfaces
 {
   public interface ITokenService
   {
-    (string token, DateTime expiration) GenerateToken(User user);
+    (string Token, DateTime Expiration) GenerateAccessToken(User user);
+    string GenerateRefreshToken();
   }
 }

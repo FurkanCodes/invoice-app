@@ -14,7 +14,7 @@ public class AuthController(IAuthService authService, IMediator _mediator) : Con
 
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(RegisterUserCommand command)
+    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterUserCommand command)
     {
         var result = await _mediator.Send(command);
         return Ok(result);

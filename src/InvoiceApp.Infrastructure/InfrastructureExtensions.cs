@@ -22,8 +22,6 @@ public static class InfrastructureExtensions
                     npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                 }
             ));
-
-        // Add this line to register the DbContext interface
         services.AddScoped<IApplicationDbContext>(provider =>
         provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IAuthService, AuthService>();

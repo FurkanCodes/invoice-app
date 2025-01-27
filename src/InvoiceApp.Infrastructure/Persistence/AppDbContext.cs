@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<User> Users { get; set; }
 
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await base.SaveChangesAsync(cancellationToken);
@@ -100,6 +102,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .Property(i => i.Amount)
             .HasPrecision(18, 2);
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+ {
+     entity.HasKey(rt => rt.Id);
+
+     entity.Property(rt => rt.Token)
+         .IsRequired()
+         .HasMaxLength(255);
+
+     entity.Property(rt => rt.CreatedAt)
+         .IsRequired()
+         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+     entity.Property(rt => rt.ExpiresAt)
+         .IsRequired();
+
+     entity.Property(rt => rt.IsValid)
+         .IsRequired()
+         .HasDefaultValue(true);
+
+     entity.Property(rt => rt.UserId)
+         .IsRequired();
+
+     // Configure relationship with User
+     entity.HasOne(rt => rt.User)
+         .WithMany(u => u.RefreshTokens)
+         .HasForeignKey(rt => rt.UserId)
+         .OnDelete(DeleteBehavior.Cascade);
+
+     // Add index on Token for faster lookups
+     entity.HasIndex(rt => rt.Token)
+         .IsUnique();
+ });
+
     }
 }
 
