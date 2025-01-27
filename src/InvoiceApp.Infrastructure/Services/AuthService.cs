@@ -61,9 +61,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
       return ApiResponse.Success(
                      new AuthResponseDto
                      {
-                       Token = token,
-                       Expiration = expiration,
-                       RefreshToken = refreshToken
+
                      },
                      "Registration successful"
                  );

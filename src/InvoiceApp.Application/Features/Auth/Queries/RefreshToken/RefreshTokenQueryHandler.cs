@@ -16,9 +16,12 @@ public class RefreshTokenQueryHandler(
     public async Task<ApiResponse<AuthResponseDto>> Handle(RefreshTokenQuery request, CancellationToken ct)
     {
         // 1. Get refresh token from cookie
-        var refreshToken = httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"];
+        var refreshToken = httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"]
+                        ?? request.BodyToken;
+
         if (string.IsNullOrEmpty(refreshToken))
             throw new UnauthorizedAccessException("No refresh token");
+
 
         // 2. Validate token against DB
 
@@ -62,6 +65,7 @@ public class RefreshTokenQueryHandler(
                      },
                      "Refresh token successful"
                  );
+
 
     }
 }
