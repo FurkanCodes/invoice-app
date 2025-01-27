@@ -5,17 +5,14 @@ using MediatR;
 
 namespace InvoiceApp.Application.Features.Auth.Commands.Register;
 
-public class RegisterCommandHandler(IAuthService authService) : IRequestHandler<RegisterUserCommand, AuthResponseDto>
+public class RegisterUserCommandHandler(IAuthService authService) : IRequestHandler<RegisterUserCommand, AuthResponseDto>
 {
-  private readonly IAuthService _authService = authService;
-
-  public async Task<AuthResponseDto> Handle(
-      RegisterUserCommand request,
-      CancellationToken cancellationToken)
-  {
-    var userDto = new UserRegisterDto(request.Email, request.Password);
-    var result = await _authService.Register(userDto);
-    Console.WriteLine(result);
-    return result;
-  }
+ 
+    public async Task<AuthResponseDto> Handle(
+        RegisterUserCommand command, 
+        CancellationToken ct)
+    {
+        var userDto = new UserRegisterDto(command.Email, command.Password);
+        return await authService.Register(userDto);
+    }
 }
