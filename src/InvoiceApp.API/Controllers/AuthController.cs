@@ -10,31 +10,30 @@ using Microsoft.AspNetCore.Mvc;
 // API/Controllers/AuthController.cs
 [ApiController]
 [Route("api/auth")]
-public class AuthController(IAuthService authService, IMediator _mediator) : ControllerBase
+public class AuthController( IMediator _mediator) : ControllerBase
 {
-    private readonly IAuthService _authService = authService;
 
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterUserCommand command)
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterUserCommand command)
     {
         var result = await _mediator.Send(command);
         return Ok(result);
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] UserLoginQuery request)
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] UserLoginQuery request)
     {
         return await _mediator.Send(request);
     }
 
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Logout()
     {
         var result = await _mediator.Send(new LogoutCommand());
         var res = new ApiResponse<object>
         {
-            Success = true,
+            Status = true,
             Message = "Successfully logged out.",
             Data = result
         };
@@ -43,7 +42,7 @@ public class AuthController(IAuthService authService, IMediator _mediator) : Con
     }
 
     [HttpPost("refresh")]
-    public async Task<ActionResult<AuthResponseDto>> RefreshToken()
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RefreshToken()
     {
         var result = await _mediator.Send(new RefreshTokenQuery());
         return Ok(result);

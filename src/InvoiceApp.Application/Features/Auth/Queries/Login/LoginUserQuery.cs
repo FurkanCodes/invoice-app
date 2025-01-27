@@ -4,7 +4,7 @@ using MediatR;
 
 namespace InvoiceApp.Application.Features.Auth.Commands;
 
-public record UserLoginQuery : IRequest<AuthResponseDto>
+public record UserLoginQuery : IRequest<ApiResponse<AuthResponseDto>>
 {
     [Required]
     [EmailAddress]

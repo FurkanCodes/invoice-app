@@ -11,9 +11,9 @@ public class RefreshTokenQueryHandler(
     IHttpContextAccessor httpContextAccessor,
     IApplicationDbContext context,
     ITokenService tokenService)
-    : IRequestHandler<RefreshTokenQuery, AuthResponseDto>
+    : IRequestHandler<RefreshTokenQuery, ApiResponse<AuthResponseDto>>
 {
-    public async Task<AuthResponseDto> Handle(RefreshTokenQuery request, CancellationToken ct)
+    public async Task<ApiResponse<AuthResponseDto>> Handle(RefreshTokenQuery request, CancellationToken ct)
     {
         // 1. Get refresh token from cookie
         var refreshToken = httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"];
@@ -24,10 +24,7 @@ public class RefreshTokenQueryHandler(
 
         var storedToken = await context.RefreshTokens.Include(i => i.User).FirstOrDefaultAsync(i => i.Token == refreshToken &&
              i.IsValid &&
-             i.ExpiresAt > DateTime.UtcNow, ct);
-
-        if (storedToken == null)
-            throw new UnauthorizedAccessException("Invalid refresh token");
+             i.ExpiresAt > DateTime.UtcNow, ct) ?? throw new UnauthorizedAccessException("Invalid refresh token");
 
         // 3. Generate new access token
         var (accessToken, expiration) = tokenService.GenerateAccessToken(storedToken.User);
@@ -56,6 +53,15 @@ public class RefreshTokenQueryHandler(
                 SameSite = SameSiteMode.Strict
             });
 
-        return new AuthResponseDto(true, accessToken, expiration, refreshToken);
+        return ApiResponse.Success(
+                     new AuthResponseDto
+                     {
+                         Token = accessToken,
+                         Expiration = DateTime.UtcNow.AddDays(7),
+                         RefreshToken = refreshToken
+                     },
+                     "Refresh token successful"
+                 );
+
     }
 }

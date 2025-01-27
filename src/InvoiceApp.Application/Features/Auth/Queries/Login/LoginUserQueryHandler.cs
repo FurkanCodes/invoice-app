@@ -7,9 +7,9 @@ using MediatR;
 
 namespace InvoiceApp.Application.Features.Auth.Queries;
 
-public class LoginUserQueryHandler(IAuthService authService) : IRequestHandler<UserLoginQuery, AuthResponseDto>
+public class LoginUserQueryHandler(IAuthService authService) : IRequestHandler<UserLoginQuery, ApiResponse<AuthResponseDto>>
 {
-    public async Task<AuthResponseDto> Handle(UserLoginQuery query, CancellationToken cancellationToken)
+    public async Task<ApiResponse<AuthResponseDto>> Handle(UserLoginQuery query, CancellationToken cancellationToken)
     {
         var dto = new UserLoginDto
         {

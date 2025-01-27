@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Http;
 public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor) : IAuthService
 {
 
-  public async Task<AuthResponseDto> Register(UserRegisterDto userDto)
+  public async Task<ApiResponse<AuthResponseDto>> Register(UserRegisterDto userDto)
   {
     // Validate email uniqueness
     if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
@@ -58,16 +58,24 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
             SameSite = SameSiteMode.Strict
           });
 
-      return new AuthResponseDto(true, token, expiration, refreshToken);
+      return ApiResponse.Success(
+                     new AuthResponseDto
+                     {
+                       Token = token,
+                       Expiration = expiration,
+                       RefreshToken = refreshToken
+                     },
+                     "Registration successful"
+                 );
+
     }
     catch (Exception ex)
     {
       Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
-      return new AuthResponseDto(true, null, DateTime.UtcNow, null);
-
+      throw;
     }
   }
-  public async Task<AuthResponseDto> Login(UserLoginDto userDto)
+  public async Task<ApiResponse<AuthResponseDto>> Login(UserLoginDto userDto)
   {
     var user = await context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email) ?? throw new UnauthorizedAccessException("Invalid credentials");
 
@@ -101,8 +109,16 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
              Expires = DateTime.UtcNow.AddDays(7),
              SameSite = SameSiteMode.Strict
            });
+    return ApiResponse.Success(
+                     new AuthResponseDto
+                     {
+                       Token = accessToken,
+                       Expiration = accessExpiration,
+                       RefreshToken = refreshToken
+                     },
+                     "Login successful"
+                 );
 
-    return new AuthResponseDto(true, accessToken, accessExpiration, refreshToken);
 
   }
 }
