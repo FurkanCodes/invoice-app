@@ -20,4 +20,8 @@
   <ProjectReference Include="..\InvoiceApp.Domain\InvoiceApp.Domain.csproj" />
    <ProjectReference Include="..\InvoiceApp.Shared\InvoiceApp.Shared.csproj" />
 </ItemGroup>
+
+<ItemGroup>
+  <Folder Include="Common/Models/" />
+</ItemGroup>
 </Project>

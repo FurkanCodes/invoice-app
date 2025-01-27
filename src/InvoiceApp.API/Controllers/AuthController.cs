@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Features.Auth.Commands;
 using InvoiceApp.Application.Features.Auth.DTOs;
+using InvoiceApp.Application.Features.Auth.Queries;
 using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
 using InvoiceApp.Application.Interfaces;
 using MediatR;
@@ -22,16 +23,23 @@ public class AuthController(IAuthService authService, IMediator _mediator) : Con
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(UserLoginDto request)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] UserLoginQuery request)
     {
-        return await _authService.Login(request);
+        return await _mediator.Send(request);
     }
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await _mediator.Send(new LogoutCommand());
-        return NoContent();
+        var result = await _mediator.Send(new LogoutCommand());
+        var res = new ApiResponse<object>
+        {
+            Success = true,
+            Message = "Successfully logged out.",
+            Data = result
+        };
+        return Ok(res);
+
     }
 
     [HttpPost("refresh")]

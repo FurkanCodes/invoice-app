@@ -58,12 +58,13 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
             SameSite = SameSiteMode.Strict
           });
 
-      return new AuthResponseDto(token, expiration, refreshToken);
+      return new AuthResponseDto(true, token, expiration, refreshToken);
     }
     catch (Exception ex)
     {
       Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
-      throw;
+      return new AuthResponseDto(true, null, DateTime.UtcNow, null);
+
     }
   }
   public async Task<AuthResponseDto> Login(UserLoginDto userDto)
@@ -101,7 +102,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
              SameSite = SameSiteMode.Strict
            });
 
-    return new AuthResponseDto(accessToken, accessExpiration, refreshToken);
+    return new AuthResponseDto(true, accessToken, accessExpiration, refreshToken);
 
   }
 }

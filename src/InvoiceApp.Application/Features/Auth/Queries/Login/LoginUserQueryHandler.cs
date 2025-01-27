@@ -1,14 +1,15 @@
 using System;
 using InvoiceApp.Application.Common.Interfaces;
+using InvoiceApp.Application.Features.Auth.Commands;
 using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Interfaces;
 using MediatR;
 
 namespace InvoiceApp.Application.Features.Auth.Queries;
 
-public class LoginUserQueryHandler(IAuthService authService) : IRequestHandler<LoginUserQuery, AuthResponseDto>
+public class LoginUserQueryHandler(IAuthService authService) : IRequestHandler<UserLoginQuery, AuthResponseDto>
 {
-    public async Task<AuthResponseDto> Handle(LoginUserQuery query, CancellationToken cancellationToken)
+    public async Task<AuthResponseDto> Handle(UserLoginQuery query, CancellationToken cancellationToken)
     {
         var dto = new UserLoginDto
         {

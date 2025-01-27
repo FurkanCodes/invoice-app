@@ -56,6 +56,6 @@ public class RefreshTokenQueryHandler(
                 SameSite = SameSiteMode.Strict
             });
 
-        return new AuthResponseDto(accessToken, expiration, refreshToken);
+        return new AuthResponseDto(true, accessToken, expiration, refreshToken);
     }
 }

@@ -31,8 +31,8 @@ public class UserService : IUserService
 
       // Try different ways to find the claim
       var userIdClaim = user.FindFirst("uid")?.Value ??
-                      user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value ??
-                      user.Claims.FirstOrDefault(c => c.Type.Contains("nameidentifier"))?.Value;
+      user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value ??
+      user.Claims.FirstOrDefault(c => c.Type.Contains("nameidentifier"))?.Value;
       _logger.LogInformation("User ID claim: {UserIdClaim}", userIdClaim);
       _logger.LogInformation("Claims found in token: {Claims}",
           string.Join(", ", user.Claims.Select(c => $"{c.Type}: {c.Value}")));

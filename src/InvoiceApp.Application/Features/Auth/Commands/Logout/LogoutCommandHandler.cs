@@ -1,21 +1,23 @@
 using System;
 using InvoiceApp.Application.Common.Interfaces;
 using InvoiceApp.Application.Features.Auth.DTOs;
+using InvoiceApp.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApp.Application.Features.Auth.Commands.Logout;
 
-public class LogoutCommandHandler(IHttpContextAccessor httpContextAccessor, IApplicationDbContext context) : IRequestHandler<LogoutCommand, AuthResponseDto>
+
+public class LogoutCommandHandler(IHttpContextAccessor httpContextAccessor, IApplicationDbContext context) : IRequestHandler<LogoutCommand, Unit>
 {
 
-        public async Task<AuthResponseDto> Handle(LogoutCommand request, CancellationToken ct)
+        public async Task<Unit> Handle(LogoutCommand request, CancellationToken ct)
         {
                 // 1. Get refresh token from cookie
                 var refreshToken = httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"];
                 if (string.IsNullOrEmpty(refreshToken))
-                        return new AuthResponseDto(string.Empty, DateTime.UtcNow, string.Empty);
+                        throw new DomainException("Refresh token is empty");
 
                 // 2. Revoke token in DB
                 var storedToken = await context.RefreshTokens
@@ -38,6 +40,6 @@ public class LogoutCommandHandler(IHttpContextAccessor httpContextAccessor, IApp
 
                 httpContextAccessor.HttpContext?.Response.Cookies.Delete("refreshToken", cookieOptions);
 
-                return new AuthResponseDto(string.Empty, DateTime.UtcNow, string.Empty);
+                return Unit.Value;
         }
 }
