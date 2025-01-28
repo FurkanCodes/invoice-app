@@ -61,24 +61,25 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
             SameSite = SameSiteMode.Strict
           });
 
-try {
-    var emailResponse = await fluentEmail
-        .To(user.Email)
-        .Subject("Verify Your Email")
-        .Body("The body")
-        .SendAsync();
-        
-    if (!emailResponse.Successful)
-    {
-        // Log the error
-        Console.WriteLine($"Failed to send email: {emailResponse.ErrorMessages}");
-    }
-} 
-catch (Exception ex) 
-{
-    // Log the exception
-    Console.WriteLine($"Email sending failed: {ex}");
-}
+      // try
+      // {
+      //   var emailResponse = await fluentEmail
+      //       .To(user.Email)
+      //       .Subject("Verify Your Email")
+      //       .Body("The body")
+      //       .SendAsync();
+
+      //   if (!emailResponse.Successful)
+      //   {
+      //     // Log the error
+      //     Console.WriteLine($"Failed to send email: {emailResponse.ErrorMessages}");
+      //   }
+      }
+      catch (Exception ex)
+      {
+        // Log the exception
+        Console.WriteLine($"Email sending failed: {ex}");
+      }
       return ApiResponse.Success(
        new AuthResponseDto
        {
