@@ -85,8 +85,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
               // Add unique index on email
               entity.HasIndex(u => u.Email)
-                  .IsUnique();
+
+                      .IsUnique();
+              entity.Property(u => u.IsEmailVerified);
           });
+
         modelBuilder.Entity<Invoice>()
                     .HasOne(i => i.User)
                     .WithMany(u => u.Invoices)

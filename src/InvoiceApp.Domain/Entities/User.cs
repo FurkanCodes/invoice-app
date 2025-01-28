@@ -13,7 +13,7 @@ public class User
   public byte[] PasswordHash { get; set; } = [];
   public byte[] PasswordSalt { get; set; } = [];
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+  public bool IsEmailVerified { get; set; } = false;
   public ICollection<Invoice> Invoices { get; set; } = [];
   public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 

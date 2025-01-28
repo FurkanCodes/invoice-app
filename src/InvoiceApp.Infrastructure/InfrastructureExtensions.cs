@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Mail;
 using InvoiceApp.Application.Common.Interfaces;
 using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Infrastructure.Persistence;
@@ -23,7 +25,8 @@ public static class InfrastructureExtensions
                 }
             ));
         services.AddScoped<IApplicationDbContext>(provider =>
-        provider.GetRequiredService<AppDbContext>());
+            provider.GetRequiredService<AppDbContext>());
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddHttpContextAccessor();

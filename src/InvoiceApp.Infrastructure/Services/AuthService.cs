@@ -7,11 +7,13 @@ using InvoiceApp.Domain.Entities;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor) : IAuthService
+using FluentEmail.Core;
+public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor, IFluentEmail fluentEmail) : IAuthService
 {
 
   public async Task<ApiResponse<AuthResponseDto>> Register(UserRegisterDto userDto)
   {
+
     // Validate email uniqueness
     if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
       throw new ArgumentException("Email is already registered");
@@ -23,7 +25,8 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
       Email = userDto.Email,
       PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userDto.Password)),
       PasswordSalt = hmac.Key,
-      CreatedAt = DateTime.UtcNow
+      CreatedAt = DateTime.UtcNow,
+      IsEmailVerified = false
     };
 
     // Save to database
@@ -58,12 +61,30 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
             SameSite = SameSiteMode.Strict
           });
 
+try {
+    var emailResponse = await fluentEmail
+        .To(user.Email)
+        .Subject("Verify Your Email")
+        .Body("The body")
+        .SendAsync();
+        
+    if (!emailResponse.Successful)
+    {
+        // Log the error
+        Console.WriteLine($"Failed to send email: {emailResponse.ErrorMessages}");
+    }
+} 
+catch (Exception ex) 
+{
+    // Log the exception
+    Console.WriteLine($"Email sending failed: {ex}");
+}
       return ApiResponse.Success(
-                     new AuthResponseDto
-                     {
+       new AuthResponseDto
+       {
 
-                     },
-                     "Registration successful"
+       },
+                     "Registration successful. Check your inbox to confirm your email address."
                  );
 
     }
