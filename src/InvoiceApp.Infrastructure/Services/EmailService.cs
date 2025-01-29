@@ -21,44 +21,23 @@ public class EmailService(IFluentEmail fluentEmail) : IEmailService, IJob
         try
         {
             var emailResponse = await fluentEmail
-      .To(email)
-      .Subject("Welcome to InvoiceApp - Verify Your Email")
-      .Body($@"
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8"">
-            <!--[if !mso]><!-->
-            <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
-            <!--<![endif]-->
-            <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-        </head>
-        <body style=""margin: 0; padding: 0; background-color: #ffffff;"">
-            <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;"">
-                <tr>
-                    <td style=""padding: 20px; background-color: #ffffff;"">
-                        <h2 style=""color: #2d3748; margin: 0 0 20px 0;"">Welcome to InvoiceApp!</h2>
-                        <p style=""font-size: 16px; color: #4a5568; margin: 0 0 20px 0;"">
+                .To(email)
+                .Subject("Welcome to InvoiceApp - Verify Your Email")
+                .Body($@"
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                        <h2 style='color: #2d3748;'>Welcome to InvoiceApp!</h2>
+                        <p style='font-size: 16px; color: #4a5568;'>
                             Thank you for registering. Please verify your email address.
                         </p>
-                        <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background: #f7fafc; border-radius: 8px; padding: 20px;"">
-                            <tr>
-                                <td style=""text-align: center;"">
-                                    <p style=""margin: 0; font-weight: 600; color: #2d3748;"">
-                                        Verification Code: 
-                                        <span style=""color: #3182ce;"">{verificationCode}</span>
-                                    </p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-    ")
-      .SendAsync();
-
+                        <div style='background: #f7fafc; padding: 20px; border-radius: 8px; margin-top: 20px;'>
+                            <p style='margin: 0; font-weight: 600; color: #2d3748;'>
+                                Verification Code: 
+                                <a style='color: #3182ce;'>{verificationCode}</span>
+                            </p>
+                        </div>
+                    </div>
+                ", isHtml: true)
+                .SendAsync();
 
             return new ApiResponse<object>
             {
