@@ -10,13 +10,18 @@ using Microsoft.AspNetCore.Http;
 using FluentEmail.Core;
 public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor, IFluentEmail fluentEmail) : IAuthService
 {
-
   public async Task<ApiResponse<AuthResponseDto>> Register(UserRegisterDto userDto)
   {
+    Console.WriteLine("Starting registration process...");
 
     // Validate email uniqueness
     if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
+    {
+      Console.WriteLine("Email already exists");
       throw new ArgumentException("Email is already registered");
+    }
+
+    Console.WriteLine("Email is unique, proceeding...");
 
     // Hash password
     using var hmac = new HMACSHA512();
@@ -29,15 +34,20 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
       IsEmailVerified = false
     };
 
+    Console.WriteLine("User object created, saving to database...");
+
     // Save to database
     context.Users.Add(user);
     await context.SaveChangesAsync();
 
-    // Generate tokens
+    Console.WriteLine("User saved to database, generating tokens...");
+
     try
     {
       var (token, expiration) = tokenService.GenerateAccessToken(user);
       var refreshToken = tokenService.GenerateRefreshToken();
+
+      Console.WriteLine("Tokens generated, saving refresh token...");
 
       // Save refresh token
       await context.RefreshTokens.AddAsync(new RefreshToken
@@ -49,49 +59,45 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
       });
       await context.SaveChangesAsync();
 
-      // Set refresh token cookie
-      httpContextAccessor.HttpContext?.Response.Cookies.Append(
-          "refreshToken",
-          refreshToken,
-          new CookieOptions
-          {
-            HttpOnly = true,
-            Secure = true,
-            Expires = DateTime.UtcNow.AddDays(7),
-            SameSite = SameSiteMode.Strict
-          });
+      Console.WriteLine("Starting email send...");
 
-      // try
-      // {
-      //   var emailResponse = await fluentEmail
-      //       .To(user.Email)
-      //       .Subject("Verify Your Email")
-      //       .Body("The body")
-      //       .SendAsync();
+      try
+      {
+        var emailResponse = await fluentEmail
+            .To(user.Email)
+            .Subject("Welcome to InvoiceApp - Verify Your Email")
+            .Body($@"
+        <h2>Welcome to InvoiceApp!</h2>
+        <p>Thank you for registering. Please verify your email address.</p>
+        <p>Your verification code is: THERE IS NONE YET!</p>
+    ")
+            .SendAsync();
 
-      //   if (!emailResponse.Successful)
-      //   {
-      //     // Log the error
-      //     Console.WriteLine($"Failed to send email: {emailResponse.ErrorMessages}");
-      //   }
+        Console.WriteLine(emailResponse.Successful
+            ? "Email sent successfully"
+            : $"Email failed: {string.Join(", ", emailResponse.ErrorMessages)}");
       }
       catch (Exception ex)
       {
-        // Log the exception
-        Console.WriteLine($"Email sending failed: {ex}");
+        Console.WriteLine($"Email error: {ex.Message}");
+        // Continue with registration even if email fails
       }
+
+      Console.WriteLine("Completing registration...");
+
       return ApiResponse.Success(
-       new AuthResponseDto
-       {
-
-       },
-                     "Registration successful. Check your inbox to confirm your email address."
-                 );
-
+          new AuthResponseDto
+          {
+            Token = token,
+            Expiration = expiration,
+            RefreshToken = refreshToken
+          },
+          "Registration successful"
+      );
     }
     catch (Exception ex)
     {
-      Console.WriteLine($"TOKEN GENERATION ERROR: {ex}");
+      Console.WriteLine($"Error during registration: {ex.Message}");
       throw;
     }
   }

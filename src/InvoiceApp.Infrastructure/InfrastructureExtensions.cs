@@ -26,6 +26,17 @@ public static class InfrastructureExtensions
             ));
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<AppDbContext>());
+        var emailConfig = configuration.GetSection("Email");
+        services
+        .AddFluentEmail(emailConfig["SenderEmail"])
+        .AddSmtpSender(new SmtpClient
+        {
+            Host = emailConfig["Host"] ?? "localhost",
+            Port = int.Parse(emailConfig["Port"] ?? "25"),
+            EnableSsl = bool.Parse(emailConfig["EnableSsl"] ?? "false"),
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            UseDefaultCredentials = false  // Add this line
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();

@@ -28,7 +28,7 @@ if (string.IsNullOrEmpty(jwtSecret))
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
-   builder.Services.AddFluentEmail(builder.Configuration["Email:SenderEmail"], builder.Configuration["Email:Sender"]);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
