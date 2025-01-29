@@ -66,7 +66,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
       {
         IsSuccess = true,
         StatusCode = HttpStatusCode.Created,
-        Message = "Registration successful",
+        Message = "Registration successful. Please heck your email.",
         Data = new AuthResponseDto
         {
           Token = token,
