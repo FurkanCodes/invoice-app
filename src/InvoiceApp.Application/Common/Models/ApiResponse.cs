@@ -1,14 +1,13 @@
-// Application/Common/ApiResponse.cs
+using System.Net;
+
 public class ApiResponse
 {
-    public bool Status { get; set; }
+    public bool IsSuccess { get; set; }
+    public HttpStatusCode StatusCode { get; set; }
     public string Message { get; set; } = string.Empty;
+    public List<string>? Errors { get; set; }
 
-    public static ApiResponse<T> Success<T>(T? data, string message = "")
-        => new() { Status = true, Data = data, Message = message };
 
-    public static ApiResponse<object> Failure(string message)
-        => new() { Status = false, Message = message };
 }
 
 public class ApiResponse<T> : ApiResponse

@@ -1,3 +1,4 @@
+using System.Net;
 using InvoiceApp.Application.Common.Interfaces;
 using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
@@ -56,16 +57,18 @@ public class RefreshTokenQueryHandler(
                 SameSite = SameSiteMode.Strict
             });
 
-        return ApiResponse.Success(
-                     new AuthResponseDto
-                     {
-                         Token = accessToken,
-                         Expiration = DateTime.UtcNow.AddDays(7),
-                         RefreshToken = refreshToken
-                     },
-                     "Refresh token successful"
-                 );
 
-
+        return new ApiResponse<AuthResponseDto>
+        {
+            StatusCode = HttpStatusCode.OK,
+            Message = "Refresh token successful",
+            IsSuccess = true,
+            Data = new AuthResponseDto
+            {
+                Token = accessToken,
+                Expiration = DateTime.UtcNow.AddDays(7),
+                RefreshToken = refreshToken
+            }
+        };
     }
 }

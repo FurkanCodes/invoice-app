@@ -1,3 +1,4 @@
+using System.Net;
 using InvoiceApp.Application.Features.Auth.Commands;
 using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
@@ -47,17 +48,19 @@ public class AuthController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Logout()
     {
         var result = await _mediator.Send(new LogoutCommand());
+
         var response = new ApiResponse<object>
         {
-            Status = true,
+            StatusCode = HttpStatusCode.OK,
             Message = "Successfully logged out.",
+            IsSuccess = true,
             Data = result
         };
         return Ok(response);
     }
 
     /// <summary>
-    /// Refresh the access token using refresh token from cookie
+    /// Refresh the access token using refresh token from cookipe
     /// </summary>
     /// <returns>New authentication tokens</returns>
     [HttpPost("refresh")]

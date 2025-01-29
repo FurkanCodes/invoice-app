@@ -1,4 +1,3 @@
-// Infrastructure/Services/AuthService.cs
 using System.Security.Cryptography;
 using System.Text;
 using InvoiceApp.Application.Features.Auth.DTOs;
@@ -8,48 +7,43 @@ using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using FluentEmail.Core;
-public class AuthService(AppDbContext context, ITokenService tokenService, IHttpContextAccessor httpContextAccessor, IFluentEmail fluentEmail) : IAuthService
+using System.Net;
+
+public class AuthService(AppDbContext context, ITokenService tokenService, IEmailService emailService,
+    IHttpContextAccessor httpContextAccessor) : IAuthService
 {
   public async Task<ApiResponse<AuthResponseDto>> Register(UserRegisterDto userDto)
   {
-    Console.WriteLine("Starting registration process...");
-
-    // Validate email uniqueness
-    if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
-    {
-      Console.WriteLine("Email already exists");
-      throw new ArgumentException("Email is already registered");
-    }
-
-    Console.WriteLine("Email is unique, proceeding...");
-
-    // Hash password
-    using var hmac = new HMACSHA512();
-    var user = new User
-    {
-      Email = userDto.Email,
-      PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userDto.Password)),
-      PasswordSalt = hmac.Key,
-      CreatedAt = DateTime.UtcNow,
-      IsEmailVerified = false
-    };
-
-    Console.WriteLine("User object created, saving to database...");
-
-    // Save to database
-    context.Users.Add(user);
-    await context.SaveChangesAsync();
-
-    Console.WriteLine("User saved to database, generating tokens...");
-
     try
     {
+      if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
+      {
+        return new ApiResponse<AuthResponseDto>
+        {
+          IsSuccess = false,
+          StatusCode = HttpStatusCode.Conflict,
+          Message = "Email is already registered",
+          Errors = new List<string> { "EMAIL_EXISTS" }
+        };
+      }
+
+      using var hmac = new HMACSHA512();
+      var user = new User
+      {
+        Email = userDto.Email,
+        PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userDto.Password)),
+        PasswordSalt = hmac.Key,
+        CreatedAt = DateTime.UtcNow,
+        IsEmailVerified = false
+      };
+
+      context.Users.Add(user);
+      await context.SaveChangesAsync();
+
       var (token, expiration) = tokenService.GenerateAccessToken(user);
       var refreshToken = tokenService.GenerateRefreshToken();
+      var verificationCode = GenerateVerificationCode();
 
-      Console.WriteLine("Tokens generated, saving refresh token...");
-
-      // Save refresh token
       await context.RefreshTokens.AddAsync(new RefreshToken
       {
         Token = refreshToken,
@@ -59,92 +53,132 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IHttp
       });
       await context.SaveChangesAsync();
 
-      Console.WriteLine("Starting email send...");
-
-      try
+      // Send verification email through email service
+      var emailResult = await emailService.SendVerificationEmail(user.Email, verificationCode);
+      if (!emailResult.IsSuccess)
       {
-        var emailResponse = await fluentEmail
-            .To(user.Email)
-            .Subject("Welcome to InvoiceApp - Verify Your Email")
-            .Body($@"
-        <h2>Welcome to InvoiceApp!</h2>
-        <p>Thank you for registering. Please verify your email address.</p>
-        <p>Your verification code is: THERE IS NONE YET!</p>
-    ")
-            .SendAsync();
-
-        Console.WriteLine(emailResponse.Successful
-            ? "Email sent successfully"
-            : $"Email failed: {string.Join(", ", emailResponse.ErrorMessages)}");
-      }
-      catch (Exception ex)
-      {
-        Console.WriteLine($"Email error: {ex.Message}");
-        // Continue with registration even if email fails
+        Console.WriteLine($"Email failed: {emailResult.Message}");
       }
 
-      Console.WriteLine("Completing registration...");
+      SetRefreshTokenCookie(refreshToken);
 
-      return ApiResponse.Success(
-          new AuthResponseDto
-          {
-            Token = token,
-            Expiration = expiration,
-            RefreshToken = refreshToken
-          },
-          "Registration successful"
-      );
+      return new ApiResponse<AuthResponseDto>
+      {
+        IsSuccess = true,
+        StatusCode = HttpStatusCode.Created,
+        Message = "Registration successful",
+        Data = new AuthResponseDto
+        {
+          Token = token,
+          Expiration = expiration,
+          RefreshToken = refreshToken
+        }
+      };
     }
     catch (Exception ex)
     {
-      Console.WriteLine($"Error during registration: {ex.Message}");
-      throw;
+      Console.WriteLine($"Registration error: {ex}");
+      return new ApiResponse<AuthResponseDto>
+      {
+        IsSuccess = false,
+        StatusCode = HttpStatusCode.InternalServerError,
+        Message = "Registration failed",
+        Errors = new List<string> { "SERVER_ERROR" }
+      };
     }
   }
+
   public async Task<ApiResponse<AuthResponseDto>> Login(UserLoginDto userDto)
   {
-    var user = await context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email) ?? throw new UnauthorizedAccessException("Invalid credentials");
-
-    // Verify password
-    using var hmac = new HMACSHA512(user.PasswordSalt);
-    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userDto.Password));
-
-    if (!computedHash.SequenceEqual(user.PasswordHash))
-      throw new UnauthorizedAccessException("Invalid credentials");
-    var (accessToken, accessExpiration) = tokenService.GenerateAccessToken(user);
-    var refreshToken = tokenService.GenerateRefreshToken();
-
-    await context.RefreshTokens.AddAsync(new RefreshToken
+    try
     {
-      Token = refreshToken,
-      UserId = user.Id,
-      ExpiresAt = DateTime.UtcNow.AddDays(7),
-      User = user  // Add this line
-    });
-    await context.SaveChangesAsync();
+      var user = await context.Users
+          .FirstOrDefaultAsync(u => u.Email == userDto.Email);
 
+      if (user == null)
+      {
+        return new ApiResponse<AuthResponseDto>
+        {
+          IsSuccess = false,
+          StatusCode = HttpStatusCode.Unauthorized,
+          Message = "Invalid credentials",
+          Errors = new List<string> { "INVALID_CREDENTIALS" }
+        };
+      }
 
+      using var hmac = new HMACSHA512(user.PasswordSalt);
+      var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userDto.Password));
 
+      if (!computedHash.SequenceEqual(user.PasswordHash))
+      {
+        return new ApiResponse<AuthResponseDto>
+        {
+          IsSuccess = false,
+          StatusCode = HttpStatusCode.Unauthorized,
+          Message = "Invalid credentials",
+          Errors = new List<string> { "INVALID_CREDENTIALS" }
+        };
+      }
+
+      var (accessToken, accessExpiration) = tokenService.GenerateAccessToken(user);
+      var refreshToken = tokenService.GenerateRefreshToken();
+
+      await context.RefreshTokens.AddAsync(new RefreshToken
+      {
+        Token = refreshToken,
+        UserId = user.Id,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        User = user
+      });
+      await context.SaveChangesAsync();
+
+      SetRefreshTokenCookie(refreshToken);
+
+      return new ApiResponse<AuthResponseDto>
+      {
+        IsSuccess = true,
+        StatusCode = HttpStatusCode.OK,
+        Message = "Login successful",
+        Data = new AuthResponseDto
+        {
+          Token = accessToken,
+          Expiration = accessExpiration,
+          RefreshToken = refreshToken
+        }
+      };
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Login error: {ex}");
+      return new ApiResponse<AuthResponseDto>
+      {
+        IsSuccess = false,
+        StatusCode = HttpStatusCode.InternalServerError,
+        Message = "Login failed",
+        Errors = new List<string> { "SERVER_ERROR" }
+      };
+    }
+  }
+
+  private void SetRefreshTokenCookie(string refreshToken)
+  {
     httpContextAccessor.HttpContext?.Response.Cookies.Append(
-           "refreshToken",
-           refreshToken,
-           new CookieOptions
-           {
-             HttpOnly = true,
-             Secure = true,  // For HTTPS only
-             Expires = DateTime.UtcNow.AddDays(7),
-             SameSite = SameSiteMode.Strict
-           });
-    return ApiResponse.Success(
-                     new AuthResponseDto
-                     {
-                       Token = accessToken,
-                       Expiration = accessExpiration,
-                       RefreshToken = refreshToken
-                     },
-                     "Login successful"
-                 );
+        "refreshToken",
+        refreshToken,
+        new CookieOptions
+        {
+          HttpOnly = true,
+          Secure = true,
+          Expires = DateTime.UtcNow.AddDays(7),
+          SameSite = SameSiteMode.Strict
+        });
+  }
 
-
+  private static string GenerateVerificationCode()
+  {
+    const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    var random = new Random();
+    return new string(Enumerable.Repeat(chars, 6)
+        .Select(s => s[random.Next(s.Length)]).ToArray());
   }
 }

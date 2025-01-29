@@ -7,6 +7,7 @@ using InvoiceApp.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 
 namespace InvoiceApp.Infrastructure;
 
@@ -37,10 +38,12 @@ public static class InfrastructureExtensions
             DeliveryMethod = SmtpDeliveryMethod.Network,
             UseDefaultCredentials = false  // Add this line
         });
-
+        services.AddQuartz();
+        services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddHttpContextAccessor();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IUserService, UserService>();
         return services;
     }
