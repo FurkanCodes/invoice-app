@@ -38,7 +38,7 @@ public class EmailService(
         var emailResponse = await fluentEmail
             .To(user.Email)
             .Subject("Complete Your Registration")
-            .Body(template, true)
+            .Body(template, isHtml: true)
             .SendAsync();
 
         verification.Status = emailResponse.Successful
@@ -190,16 +190,43 @@ public class EmailService(
         }
     }
     private static string BuildEmailTemplate(string link, string code) => $@"
-        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
-            <h2 style='color: #2d3748;'>Verify Your Email</h2>
-            <div style='margin: 20px 0; text-align: center;'>
-                <a href='{link}' style='button-style'>Verify Automatically</a>
-            </div>
-            <div style='border-top: 1px solid #e2e8f0; padding-top: 20px;'>
-                <p>Or use code: <strong>{code}</strong></p>
-                <small>Expires: {DateTime.UtcNow.AddHours(24):MMM dd, yyyy HH:mm}</small>
-            </div>
-        </div>";
+       <body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f7fa;'>
+    <table cellpadding='0' cellspacing='0' border='0' width='100%' style='min-width: 100%; background-color: #f4f7fa;'>
+        <tr>
+            <td align='center' style='padding: 40px 0;'>
+                <table cellpadding='0' cellspacing='0' border='0' width='600' style='max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'>
+                    <tr>
+                        <td style='padding: 40px;'>
+                            <h1 style='color: #1a202c; font-size: 28px; font-weight: bold; margin: 0 0 20px; text-align: center;'>Verify Your Email</h1>
+                            <p style='color: #4a5568; font-size: 16px; line-height: 24px; margin: 0 0 30px; text-align: center;'>Thank you for signing up! Please verify your email address to complete your registration.</p>
+                            <table cellpadding='0' cellspacing='0' border='0' width='100%'>
+                                <tr>
+                                    <td align='center'>
+                                        <a href='{link}' style='display: inline-block; background-color: #4299e1; color: #ffffff; font-size: 16px; font-weight: bold; text-decoration: none; padding: 12px 30px; border-radius: 4px; text-align: center; transition: background-color 0.3s ease;'>Verify Automatically</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table cellpadding='0' cellspacing='0' border='0' width='100%' style='margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;'>
+                                <tr>
+                                    <td>
+                                        <p style='color: #4a5568; font-size: 16px; line-height: 24px; margin: 0 0 10px;'>Or use this verification code:</p>
+                                        <p style='color: #1a202c; font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 0 0 20px; text-align: center;'>{code}</p>
+                                        <p style='color: #718096; font-size: 14px; margin: 0;'>Expires: {DateTime.UtcNow.AddHours(24):MMM dd, yyyy HH:mm} UTC</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style='background-color: #edf2f7; padding: 20px; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;'>
+                            <p style='color: #718096; font-size: 14px; margin: 0; text-align: center;'>If you didn't request this email, please ignore it or <a href='#' style='color: #4299e1; text-decoration: none;'>contact support</a> if you have any questions.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>";
 
     private static string GenerateSecureCode()
     {
