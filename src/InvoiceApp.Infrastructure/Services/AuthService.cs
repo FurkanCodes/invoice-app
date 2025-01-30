@@ -23,7 +23,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
           IsSuccess = false,
           StatusCode = HttpStatusCode.Conflict,
           Message = "Email is already registered",
-          Errors = new List<string> { "EMAIL_EXISTS" }
+          Errors = ["EMAIL_EXISTS"]
         };
       }
 
@@ -94,7 +94,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
     {
       var user = await context.Users
           .FirstOrDefaultAsync(u => u.Email == userDto.Email);
-      if (!user.IsEmailVerified)
+      if (!user!.IsEmailVerified)
       {
         return new ApiResponse<AuthResponseDto>
         {

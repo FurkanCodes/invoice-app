@@ -91,17 +91,32 @@ public class AuthController(IMediator mediator) : ControllerBase
         return Ok($"Protected resource accessed by user: {userId}");
     }
 
-    [HttpPost("verify-email")]
-    public async Task<IActionResult> VerifyEmail([FromQuery] string? token, [FromQuery] string? code)
+  [HttpPost("verify-email-with-token")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
     {
-        var command = new VerifyEmailCommand { Token = token, Code = code };
+        var command = new VerifyEmailWithTokenCommand { Token = token };
         var result = await _mediator.Send(command);
+        return HandleVerificationResult(result);
+    }
 
+    [HttpPost("verify-email-with-code")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyEmailWithCode([FromQuery] string code)
+    {
+        var command = new VerifyEmailWithCodeCommand { Code = code };
+        var result = await _mediator.Send(command);
+        return HandleVerificationResult(result);
+    }
+
+    private IActionResult HandleVerificationResult(ApiResponse<object> result)
+    {
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.StatusCode, result);
         }
-
         return Ok(result);
     }
 }

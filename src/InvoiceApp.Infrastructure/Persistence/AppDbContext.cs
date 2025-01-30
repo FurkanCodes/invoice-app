@@ -143,13 +143,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<EmailVerification>(entity =>
    {
+       // Primary Key
        entity.HasKey(ev => ev.Id);
 
-
-
+       // Properties
        entity.Property(e => e.VerificationTokenHash)
-          .IsRequired()
-          .HasMaxLength(128);
+           .IsRequired()
+           .HasMaxLength(128);
 
        entity.Property(e => e.VerificationCodeHash)
            .IsRequired()
@@ -158,13 +158,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
        entity.Property(e => e.ExpiresAt)
            .IsRequired();
 
-       // Configure relationship with User
+       entity.Property(e => e.CreatedAt)
+           .IsRequired();
+
+       entity.Property(e => e.Status)
+           .IsRequired()
+           .HasConversion<string>();
+
+       // Relationships
        entity.HasOne(ev => ev.User)
-           .WithMany(u => u.EmailVerifications) // Plural if collection
+           .WithMany(u => u.EmailVerifications)
            .HasForeignKey(ev => ev.UserId)
            .OnDelete(DeleteBehavior.Cascade);
 
-       // Index for faster lookups
+       // Indexes
        entity.HasIndex(ev => new { ev.UserId, ev.ExpiresAt });
    });
 

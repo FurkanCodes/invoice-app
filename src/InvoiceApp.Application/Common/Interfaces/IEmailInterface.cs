@@ -9,11 +9,15 @@ namespace InvoiceApp.Application.Interfaces
         /// <summary>
         /// Sends a verification email to the specified email address
         /// </summary>
-        Task<ApiResponse<object>> SendVerificationEmail(string email);
+        Task<ApiResponse<object>> SendVerificationEmail(string? email);
 
         /// <summary>
         /// Verifies a user's email using either a token or verification code
         /// </summary>
-        Task<ApiResponse<object>> VerifyEmail(string? token, string? code);
+        Task<ApiResponse<object>> VerifyEmailWithToken(string? token);
+
+        Task<ApiResponse<object>> VerifyEmailWithCode(string? code);
+
+
     }
 }
