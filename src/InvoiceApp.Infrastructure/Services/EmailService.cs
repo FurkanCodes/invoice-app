@@ -13,7 +13,7 @@ public class EmailService(
     IFluentEmail fluentEmail,
     AppDbContext dbContext,
     IConfiguration config)
-    : IEmailService, IJob
+    : IEmailService
 {
     private const int MAX_ATTEMPTS = 3;
     private static readonly TimeSpan VERIFICATION_VALIDITY = TimeSpan.FromHours(24);
@@ -21,69 +21,41 @@ public class EmailService(
         config["Security:HmacKey"] ?? throw new InvalidOperationException("Missing HmacKey configuration")
     );
 
-    public async Task Execute(IJobExecutionContext context)
-    {
-        var verificationId = context.MergedJobDataMap.GetGuid("VerificationId");
-        var verification = await dbContext.EmailVerifications
-            .Include(ev => ev.User)
-            .FirstOrDefaultAsync(ev => ev.Id == verificationId);
-
-        if (verification == null || verification.Attempts >= MAX_ATTEMPTS) return;
-
-        var newToken = GenerateSecureToken();
-        var newCode = GenerateSecureCode();
-
-        using var hmac = new HMACSHA512(_hmacKey);
-        verification.VerificationTokenHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(newToken)));
-        verification.VerificationCodeHash = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(newCode)));
-        verification.ExpiresAt = DateTime.UtcNow.Add(VERIFICATION_VALIDITY);
-        verification.Attempts++;
-
-        try
-        {
-            var verificationLink = $"{config["BaseUrl"]}/verify?token={WebUtility.UrlEncode(newToken)}";
-            var template = BuildEmailTemplate(verificationLink, newCode);
-            var emailResponse = await fluentEmail
-                .To(verification.User?.Email)
-                .Subject("Complete Your InvoiceApp Registration")
-                .Body(template, true)
-                .SendAsync();
-
-            verification.Status = emailResponse.Successful ? EmailVerificationStatus.Sent : EmailVerificationStatus.Failed;
-            await dbContext.SaveChangesAsync();
-
-            if (!emailResponse.Successful && verification.Attempts < MAX_ATTEMPTS)
-                ScheduleRetry(verification);
-        }
-        catch
-        {
-            ScheduleRetry(verification);
-        }
-    }
 
 
 
     public async Task<ApiResponse<object>> SendVerificationEmail(string? email)
     {
         var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null) return new ApiResponse<object>
-        {
-            IsSuccess = false,
-            StatusCode = HttpStatusCode.NotFound,
-            Message = "User not found"
-        };
+        if (user == null) return new ApiResponse<object> { /* Error response */ };
 
-        // Destructure the tuple here
         var (verification, token, code) = CreateVerificationRecord(user.Id);
+
+        // Send email immediately after creating record
+        var verificationLink = $"{config["BaseUrl"]}/verify-email-with-token?token={WebUtility.UrlEncode(token)}";
+        var template = BuildEmailTemplate(verificationLink, code);
+
+        var emailResponse = await fluentEmail
+            .To(user.Email)
+            .Subject("Complete Your Registration")
+            .Body(template, true)
+            .SendAsync();
+
+        verification.Status = emailResponse.Successful
+            ? EmailVerificationStatus.Sent
+            : EmailVerificationStatus.Failed;
+
         dbContext.EmailVerifications.Add(verification);
         await dbContext.SaveChangesAsync();
+
         return new ApiResponse<object>
         {
-            IsSuccess = true,
-            StatusCode = HttpStatusCode.OK,
-            Message = "Verification Success"
+            IsSuccess = emailResponse.Successful,
+            StatusCode = emailResponse.Successful ? HttpStatusCode.OK : HttpStatusCode.BadGateway,
+            Message = emailResponse.Successful ? "Verification email sent" : "Failed to send email"
         };
     }
+
 
 
     private async Task<ApiResponse<object>> CompleteVerification(EmailVerification verification)
@@ -249,42 +221,6 @@ public class EmailService(
             : EmailVerificationStatus.Failed;
     }
 
-    private static void ScheduleRetry(EmailVerification verification)
-    {
-        var job = JobBuilder.Create<EmailService>()
-            .UsingJobData("VerificationId", verification.Id.ToString())
-            .Build();
-
-        var trigger = TriggerBuilder.Create()
-            .StartAt(DateBuilder.FutureDate(5 * verification.Attempts, IntervalUnit.Minute))
-            .Build();
-
-        // Implement scheduler injection in production
-
-        //       try
-        // {
-        //     var scheduler = await schedulerFactory.GetScheduler();
-
-        //     var job = JobBuilder.Create<EmailService>()
-        //         .WithIdentity($"retry-{verification.Id}")
-        //         .UsingJobData("VerificationId", verification.Id.ToString())
-        //         .Build();
-
-        //     var trigger = TriggerBuilder.Create()
-        //         .WithIdentity($"retry-trigger-{verification.Id}")
-        //         .StartAt(DateBuilder.FutureDate(5 * verification.Attempts, IntervalUnit.Minute))
-        //         .Build();
-
-        //     await scheduler.ScheduleJob(job, trigger);
-        // }
-        // catch (Exception ex)
-        // {
-        //     // Handle scheduler error
-        //     Console.WriteLine($"Failed to schedule retry: {ex.Message}");
-        // }
-
-
-    }
 
 
 
