@@ -2,6 +2,7 @@ using System.Net;
 using InvoiceApp.Application.Features.Auth.Commands;
 using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
+using InvoiceApp.Application.Features.EmailVerification.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -88,5 +89,19 @@ public class AuthController(IMediator mediator) : ControllerBase
     {
         var userId = User.FindFirst("uid")?.Value;
         return Ok($"Protected resource accessed by user: {userId}");
+    }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail([FromQuery] string? token, [FromQuery] string? code)
+    {
+        var command = new VerifyEmailCommand { Token = token, Code = code };
+        var result = await _mediator.Send(command);
+
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.StatusCode, result);
+        }
+
+        return Ok(result);
     }
 }

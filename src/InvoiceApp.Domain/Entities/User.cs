@@ -17,4 +17,7 @@ public class User
   public ICollection<Invoice> Invoices { get; set; } = [];
   public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 
+  public ICollection<EmailVerification> EmailVerifications { get; set; } = [];
 }
+
+

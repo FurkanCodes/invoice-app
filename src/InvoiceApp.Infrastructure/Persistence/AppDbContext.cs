@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public DbSet<EmailVerification> EmailVerifications { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await base.SaveChangesAsync(cancellationToken);
@@ -138,6 +140,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
      entity.HasIndex(rt => rt.Token)
          .IsUnique();
  });
+
+        modelBuilder.Entity<EmailVerification>(entity =>
+   {
+       entity.HasKey(ev => ev.Id);
+
+
+
+       entity.Property(e => e.VerificationTokenHash)
+          .IsRequired()
+          .HasMaxLength(128);
+
+       entity.Property(e => e.VerificationCodeHash)
+           .IsRequired()
+           .HasMaxLength(128);
+
+       entity.Property(e => e.ExpiresAt)
+           .IsRequired();
+
+       // Configure relationship with User
+       entity.HasOne(ev => ev.User)
+           .WithMany(u => u.EmailVerifications) // Plural if collection
+           .HasForeignKey(ev => ev.UserId)
+           .OnDelete(DeleteBehavior.Cascade);
+
+       // Index for faster lookups
+       entity.HasIndex(ev => new { ev.UserId, ev.ExpiresAt });
+   });
+
 
     }
 }

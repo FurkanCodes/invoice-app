@@ -22,6 +22,47 @@ namespace InvoiceApp.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("InvoiceApp.Domain.Entities.EmailVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerificationCodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("VerificationTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ExpiresAt");
+
+                    b.ToTable("EmailVerifications");
+                });
+
             modelBuilder.Entity("InvoiceApp.Domain.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -169,6 +210,17 @@ namespace InvoiceApp.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("InvoiceApp.Domain.Entities.EmailVerification", b =>
+                {
+                    b.HasOne("InvoiceApp.Domain.Entities.User", "User")
+                        .WithMany("EmailVerifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InvoiceApp.Domain.Entities.Invoice", b =>
                 {
                     b.HasOne("InvoiceApp.Domain.Entities.User", "User")
@@ -193,6 +245,8 @@ namespace InvoiceApp.Infrastructure.Migrations
 
             modelBuilder.Entity("InvoiceApp.Domain.Entities.User", b =>
                 {
+                    b.Navigation("EmailVerifications");
+
                     b.Navigation("Invoices");
 
                     b.Navigation("RefreshTokens");

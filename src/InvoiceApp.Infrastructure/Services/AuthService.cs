@@ -54,7 +54,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
       await context.SaveChangesAsync();
 
       // Send verification email through email service
-      var emailResult = await emailService.SendVerificationEmail(user.Email, verificationCode);
+      var emailResult = await emailService.SendVerificationEmail(user.Email);
       if (!emailResult.IsSuccess)
       {
         Console.WriteLine($"Email failed: {emailResult.Message}");
@@ -94,7 +94,16 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
     {
       var user = await context.Users
           .FirstOrDefaultAsync(u => u.Email == userDto.Email);
-
+      if (!user.IsEmailVerified)
+      {
+        return new ApiResponse<AuthResponseDto>
+        {
+          IsSuccess = false,
+          StatusCode = HttpStatusCode.Unauthorized,
+          Message = "Email is not verified",
+          Errors = ["EMAIL_VERIFICATION_ERROR"]
+        };
+      }
       if (user == null)
       {
         return new ApiResponse<AuthResponseDto>
@@ -102,7 +111,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
           IsSuccess = false,
           StatusCode = HttpStatusCode.Unauthorized,
           Message = "Invalid credentials",
-          Errors = new List<string> { "INVALID_CREDENTIALS" }
+          Errors = ["INVALID_CREDENTIALS"]
         };
       }
 
@@ -116,7 +125,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
           IsSuccess = false,
           StatusCode = HttpStatusCode.Unauthorized,
           Message = "Invalid credentials",
-          Errors = new List<string> { "INVALID_CREDENTIALS" }
+          Errors = ["INVALID_CREDENTIALS"]
         };
       }
 
