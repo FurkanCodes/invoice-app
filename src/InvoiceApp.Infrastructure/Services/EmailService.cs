@@ -32,7 +32,7 @@ public class EmailService(
         var (verification, token, code) = CreateVerificationRecord(user.Id);
 
         // Send email immediately after creating record
-        var verificationLink = $"{config["BaseUrl"]}/verify-email-with-token?token={WebUtility.UrlEncode(token)}";
+        var verificationLink = $"{config["BaseUrl"]}/api/auth/verify-email-with-token?token={WebUtility.UrlEncode(token)}";
         var template = BuildEmailTemplate(verificationLink, code);
 
         var emailResponse = await fluentEmail
