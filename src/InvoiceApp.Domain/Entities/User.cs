@@ -18,6 +18,8 @@ public class User
   public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 
   public ICollection<EmailVerification> EmailVerifications { get; set; } = [];
+
+  public ICollection<Customer> Customers { get; set; } = [];
 }
 
 

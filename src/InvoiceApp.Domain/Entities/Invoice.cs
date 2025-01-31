@@ -48,6 +48,10 @@ public class Invoice
 
     // Make the navigation property nullable
     public User? User { get; set; }
+
+    public Guid? CustomerId { get; private set; }
+    public Customer Customer { get; set; } = null!;
+
     public void SoftDelete()
     {
         IsDeleted = true;
@@ -64,10 +68,20 @@ public class Invoice
         InvoiceNumber = string.Empty;
     }
 
-    public Invoice(Guid userId, string clientName, decimal amount, DateTime dueDate,
-    string taxId, string companyRegistration, string legalAddress,
-    string currency, decimal taxRate, string paymentTerms,
-    string invoiceNumber, DateTime issueDate)
+    public Invoice(
+         Guid userId,
+         string clientName,
+         decimal amount,
+         DateTime dueDate,
+         string taxId,
+         string companyRegistration,
+         string legalAddress,
+         string currency,
+         decimal taxRate,
+         string paymentTerms,
+         string invoiceNumber,
+         DateTime issueDate,
+         Guid? customerId = null)
     {
         if (string.IsNullOrEmpty(clientName)) throw new DomainException("Client name is required.");
         if (amount <= 0) throw new DomainException("Amount must be positive.");
@@ -82,7 +96,7 @@ public class Invoice
         ClientName = clientName;
         UserId = userId;
         Amount = amount;
-
+        CustomerId = customerId;
         DueDate = dueDate;
 
         TaxId = taxId;

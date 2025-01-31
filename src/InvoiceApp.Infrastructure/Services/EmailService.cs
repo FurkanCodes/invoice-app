@@ -4,10 +4,10 @@ using InvoiceApp.Domain.Entities;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Quartz;
+
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
+
 using FluentEmail.Core.Models;
 public class EmailService(
     IFluentEmail fluentEmail,
@@ -20,9 +20,6 @@ public class EmailService(
     private readonly byte[] _hmacKey = Convert.FromBase64String(
         config["Security:HmacKey"] ?? throw new InvalidOperationException("Missing HmacKey configuration")
     );
-
-
-
 
     public async Task<ApiResponse<object>> SendVerificationEmail(string? email)
     {
@@ -241,27 +238,4 @@ public class EmailService(
             .Replace("+", "-").Replace("/", "_").Replace("=", "");
     }
 
-    private static void UpdateVerificationStatus(EmailVerification verification, SendResponse response)
-    {
-        verification.Status = response.Successful
-            ? EmailVerificationStatus.Sent
-            : EmailVerificationStatus.Failed;
-    }
-
-
-
-
-    private static ApiResponse<object> HandleEmailResponse(SendResponse response) => new()
-    {
-        IsSuccess = response.Successful,
-        StatusCode = response.Successful ? HttpStatusCode.OK : HttpStatusCode.BadGateway,
-        Message = response.Successful ? "Email sent" : $"Failed: {string.Join(", ", response.ErrorMessages)}"
-    };
-
-    private static ApiResponse<object> HandleEmailError(Exception ex) => new()
-    {
-        IsSuccess = false,
-        StatusCode = HttpStatusCode.InternalServerError,
-        Message = $"Email error: {ex.Message}"
-    };
 }

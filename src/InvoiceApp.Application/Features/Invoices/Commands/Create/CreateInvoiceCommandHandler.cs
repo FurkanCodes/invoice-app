@@ -9,24 +9,13 @@ using Microsoft.Extensions.Logging;
 
 
 namespace InvoiceApp.Application.Features.Invoices.Commands;
-public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand, Guid>
+public class CreateInvoiceCommandHandler(
+    IApplicationDbContext context,
+    ICurrencyValidator currencyValidator,
+    IUserService userService,
+    ILogger<CreateInvoiceCommandHandler> logger) : IRequestHandler<CreateInvoiceCommand, Guid>
 {
-    private readonly IApplicationDbContext _context;
-    private readonly ICurrencyValidator _currencyValidator;
-    private readonly IUserService _userService;
-    private readonly ILogger<CreateInvoiceCommandHandler> _logger;
 
-    public CreateInvoiceCommandHandler(
-        IApplicationDbContext context,
-        ICurrencyValidator currencyValidator,
-        IUserService userService,
-        ILogger<CreateInvoiceCommandHandler> logger)
-    {
-        _context = context;
-        _currencyValidator = currencyValidator;
-        _userService = userService;
-        _logger = logger;
-    }
 
     public async Task<Guid> Handle(
       CreateInvoiceCommand command,
@@ -34,16 +23,16 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
     {
         try
         {
-            var userId = _userService.UserId;
-            _logger.LogInformation("Creating invoice for user: {UserId}", userId);
+            var userId = userService.UserId;
+            logger.LogInformation("Creating invoice for user: {UserId}", userId);
 
-            if (!_currencyValidator.IsValidCode(command.Currency))
+            if (!currencyValidator.IsValidCode(command.Currency))
             {
                 throw new DomainException("Invalid currency code");
             }
 
             // Validate user exists
-            var userExists = await _context.Users
+            var userExists = await context.Users
                 .AnyAsync(u => u.Id == userId, cancellationToken);
 
             if (!userExists)
@@ -52,7 +41,7 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
             }
 
             // Check for duplicate invoice number
-            var invoiceNumberExists = await _context.Invoices
+            var invoiceNumberExists = await context.Invoices
                 .AnyAsync(i => i.InvoiceNumber == command.InvoiceNumber, cancellationToken);
 
             if (invoiceNumberExists)
@@ -60,6 +49,17 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
                 throw new DomainException($"Invoice number '{command.InvoiceNumber}' already exists.");
             }
 
+            if (command.CustomerId.HasValue)
+            {
+                var customerExists = await context.Customers
+                    .AnyAsync(c => c.Id == command.CustomerId.Value, cancellationToken);
+                if (!customerExists)
+                {
+                    throw new DomainException($"Customer with ID {command.CustomerId} not found.");
+                }
+            }
+
+            // Create invoice with CustomerId
             var invoice = new Invoice(
                 userId,
                 command.ClientName,
@@ -72,20 +72,22 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
                 command.TaxRate,
                 command.PaymentTerms,
                 command.InvoiceNumber,
-                command.IssueDate
+                command.IssueDate,
+                command.CustomerId // Include CustomerId
             );
 
-            await _context.Invoices.AddAsync(invoice, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully created invoice {InvoiceId} for user {UserId}",
+            await context.Invoices.AddAsync(invoice, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Successfully created invoice {InvoiceId} for user {UserId}",
                 invoice.Id, userId);
 
             return invoice.Id;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating invoice: {ErrorMessage}", ex.Message);
+            logger.LogError(ex, "Error creating invoice: {ErrorMessage}", ex.Message);
             throw;
         }
     }

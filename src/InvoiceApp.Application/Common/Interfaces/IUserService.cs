@@ -6,16 +6,10 @@ public interface IUserService
   Guid UserId { get; }
 }
 
-public class UserService : IUserService
+public class UserService(IHttpContextAccessor httpContextAccessor, ILogger<UserService> logger) : IUserService
 {
-  private readonly IHttpContextAccessor _httpContextAccessor;
-  private readonly ILogger<UserService> _logger;
-
-  public UserService(IHttpContextAccessor httpContextAccessor, ILogger<UserService> logger)
-  {
-    _httpContextAccessor = httpContextAccessor;
-    _logger = logger;
-  }
+  private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+  private readonly ILogger<UserService> _logger = logger;
 
   public Guid UserId
   {

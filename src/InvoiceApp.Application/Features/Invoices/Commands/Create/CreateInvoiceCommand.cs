@@ -4,6 +4,7 @@ namespace InvoiceApp.Application.Features.Invoices.Commands;
 
 public class CreateInvoiceCommand : IRequest<Guid>
 {
+    public Guid? CustomerId { get; set; } // Add this
     public required string ClientName { get; set; }
     public decimal Amount { get; set; }
     public DateTime DueDate { get; set; }

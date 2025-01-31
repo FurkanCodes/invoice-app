@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<EmailVerification> EmailVerifications { get; set; }
 
+    public DbSet<Customer> Customers { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await base.SaveChangesAsync(cancellationToken);
@@ -51,7 +53,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .IsRequired()
                 .HasMaxLength(50);
             entity.Property(i => i.LegalAddress)
-        .IsRequired();
+                .IsRequired();
             entity.Property(i => i.Currency)
                 .IsRequired()
                 .HasMaxLength(10);
@@ -175,6 +177,57 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
        entity.HasIndex(ev => new { ev.UserId, ev.ExpiresAt });
    });
 
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // Configure relationships
+            entity.HasOne(c => c.User)
+                .WithMany(u => u.Customers)
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure enums
+            entity.Property(e => e.Type)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            // Configure required fields
+            entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Phone).IsRequired().HasMaxLength(20);
+
+            // Configure address fields
+            entity.Property(e => e.StreetAddress).HasMaxLength(200);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.State).HasMaxLength(100);
+            entity.Property(e => e.PostalCode).HasMaxLength(20);
+            entity.Property(e => e.Country).HasMaxLength(100);
+
+            // Configure billing fields
+            entity.Property(e => e.PaymentTerms).HasMaxLength(50);
+            entity.Property(e => e.DefaultCurrency).HasMaxLength(3);
+            entity.Property(e => e.TaxId).HasMaxLength(50);
+            entity.Property(e => e.AccountNumber).HasMaxLength(50);
+
+            // Configure audit fields
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("NOW()")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("NOW()");
+
+            // Add indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Email);
+
+            // Configure table name and columns
+            entity.ToTable("Customers");
+            entity.Property(e => e.Id).HasColumnName("CustomerId");
+
+        });
 
     }
 }

@@ -12,6 +12,7 @@ namespace InvoiceApp.Application.Common.Interfaces
     DbSet<EmailVerification> EmailVerifications { get; set; }
 
     DbSet<RefreshToken> RefreshTokens { get; set; }
+    DbSet<Customer> Customers { get; set; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
   }
