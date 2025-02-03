@@ -6,15 +6,16 @@ using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 public class RefreshTokenQueryHandler(
     IHttpContextAccessor httpContextAccessor,
-    IApplicationDbContext context,
+    IAuthRepository authRepository,
     ITokenService tokenService)
     : IRequestHandler<RefreshTokenQuery, ApiResponse<AuthResponseDto>>
 {
-    public async Task<ApiResponse<AuthResponseDto>> Handle(RefreshTokenQuery request, CancellationToken ct)
+    public async Task<ApiResponse<AuthResponseDto>> Handle(
+        RefreshTokenQuery request,
+        CancellationToken ct)
     {
         // 1. Get refresh token from cookie
         var refreshToken = httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"]
@@ -23,21 +24,21 @@ public class RefreshTokenQueryHandler(
         if (string.IsNullOrEmpty(refreshToken))
             throw new UnauthorizedAccessException("No refresh token");
 
-
-        // 2. Validate token against DB
-
-        var storedToken = await context.RefreshTokens.Include(i => i.User).FirstOrDefaultAsync(i => i.Token == refreshToken &&
-             i.IsValid &&
-             i.ExpiresAt > DateTime.UtcNow, ct) ?? throw new UnauthorizedAccessException("Invalid refresh token");
+        // 2. Validate token using repository
+        var storedToken = await authRepository.GetValidRefreshTokenAsync(refreshToken, ct)
+            ?? throw new UnauthorizedAccessException("Invalid refresh token");
 
         // 3. Generate new access token
         var (accessToken, expiration) = tokenService.GenerateAccessToken(storedToken.User);
 
-        // 4. Rotate refresh token (optional)
+        // 4. Rotate refresh token
         var newRefreshToken = tokenService.GenerateRefreshToken();
-        storedToken.IsValid = false;
 
-        await context.RefreshTokens.AddAsync(new RefreshToken
+        // Invalidate old token using repository
+        await authRepository.InvalidateRefreshTokenAsync(storedToken, ct);
+
+        // Add new refresh token using repository
+        await authRepository.AddRefreshTokenAsync(new RefreshToken
         {
             Token = newRefreshToken,
             UserId = storedToken.UserId,
@@ -45,7 +46,8 @@ public class RefreshTokenQueryHandler(
             User = storedToken.User,
         }, ct);
 
-        await context.SaveChangesAsync(ct);
+        // Save changes in single transaction
+        await authRepository.SaveChangesAsync(ct);
 
         // 5. Attach new refresh token to cookie
         httpContextAccessor.HttpContext?.Response.Cookies.Append("refreshToken", newRefreshToken,
@@ -57,7 +59,6 @@ public class RefreshTokenQueryHandler(
                 SameSite = SameSiteMode.Strict
             });
 
-
         return new ApiResponse<AuthResponseDto>
         {
             StatusCode = HttpStatusCode.OK,
@@ -66,8 +67,8 @@ public class RefreshTokenQueryHandler(
             Data = new AuthResponseDto
             {
                 Token = accessToken,
-                Expiration = DateTime.UtcNow.AddDays(7),
-                RefreshToken = refreshToken
+                Expiration = expiration,  // Use actual expiration from token service
+                RefreshToken = newRefreshToken  // Return the new refresh token
             }
         };
     }

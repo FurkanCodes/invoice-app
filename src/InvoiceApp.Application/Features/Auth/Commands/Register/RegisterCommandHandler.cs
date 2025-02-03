@@ -7,9 +7,9 @@ namespace InvoiceApp.Application.Features.Auth.Commands.Register;
 
 public class RegisterUserCommandHandler(IAuthService authService) : IRequestHandler<RegisterUserCommand, ApiResponse<AuthResponseDto>>
 {
- 
+
     public async Task<ApiResponse<AuthResponseDto>> Handle(
-        RegisterUserCommand command, 
+        RegisterUserCommand command,
         CancellationToken ct)
     {
         var userDto = new UserRegisterDto(command.Email, command.Password);

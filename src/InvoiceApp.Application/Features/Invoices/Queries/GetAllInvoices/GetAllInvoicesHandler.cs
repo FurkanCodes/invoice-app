@@ -6,12 +6,14 @@ using InvoiceApp.Domain.Exceptions;
 using System.Linq.Expressions;
 using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Application.Common.Interfaces;
+using InvoiceApp.Application.Common.Interfaces.Repositories;
+using InvoiceApp.Domain.Entities;
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 
-public class GetAllInvoicesHandler(IApplicationDbContext context)
-    : IRequestHandler<GetAllInvoicesQuery, PagedResponse<InvoiceDto>>
+public class GetAllInvoicesHandler(IInvoiceRepository invoiceRepository)
+    : IRequestHandler<GetAllInvoicesQuery, PagedResponse<Invoice>>
 {
-    public async Task<PagedResponse<InvoiceDto>> Handle(
+    public async Task<PagedResponse<Invoice>> Handle(
         GetAllInvoicesQuery query,
         CancellationToken ct)
     {
@@ -21,40 +23,6 @@ public class GetAllInvoicesHandler(IApplicationDbContext context)
         if (query.StartDate > query.EndDate)
             throw new DomainException("End date cannot be before start date");
 
-        // Base query with date filtering
-        var baseQuery = context.Invoices.AsNoTracking();
-
-        // Apply date filters
-        if (query.StartDate.HasValue)
-            baseQuery = baseQuery.Where(i => i.DueDate >= query.StartDate.Value.ToUniversalTime());
-
-        if (query.EndDate.HasValue)
-            baseQuery = baseQuery.Where(i => i.DueDate <= query.EndDate.Value.ToUniversalTime());
-
-        // Get total count
-        var totalCount = await baseQuery.CountAsync(ct);
-
-        // Apply pagination and ordering
-        var items = await baseQuery
-            .OrderBy(i => i.DueDate)
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Select(i => new InvoiceDto
-            {
-                Id = i.Id,
-                ClientName = i.ClientName,
-                Amount = i.Amount,
-                DueDate = i.DueDate
-            })
-            .ToListAsync(ct);
-
-        return new PagedResponse<InvoiceDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            PageNumber = query.PageNumber,
-            PageSize = query.PageSize,
-
-        };
+        return await invoiceRepository.GetAllInvoices(query.PageNumber, query.PageSize, ct);
     }
 }

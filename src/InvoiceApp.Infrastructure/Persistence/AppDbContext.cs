@@ -6,23 +6,24 @@ using InvoiceApp.Application.Common.Interfaces;
 
 namespace InvoiceApp.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IApplicationDbContext
+public class AppDbContext : DbContext, IUnitOfWork
 
 {
-    public DbSet<Invoice> Invoices { get; set; }
-    public DbSet<User> Users { get; set; }
+    internal DbSet<Invoice> Invoices { get; set; }
+    internal DbSet<User> Users { get; set; }
+    internal DbSet<RefreshToken> RefreshTokens { get; set; }
+    internal DbSet<EmailVerification> EmailVerifications { get; set; }
+    internal DbSet<Customer> Customers { get; set; }
 
-    public DbSet<RefreshToken> RefreshTokens { get; set; }
-
-    public DbSet<EmailVerification> EmailVerifications { get; set; }
-
-    public DbSet<Customer> Customers { get; set; }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await base.SaveChangesAsync(cancellationToken);
     }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Invoice>(entity =>

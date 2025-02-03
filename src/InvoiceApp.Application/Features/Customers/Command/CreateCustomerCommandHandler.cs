@@ -1,15 +1,15 @@
 using InvoiceApp.Application.Common.Interfaces;
+using InvoiceApp.Application.Common.Interfaces.Repositories;
 using InvoiceApp.Application.Features.Customers.Commands;
 using InvoiceApp.Domain.Entities;
 using InvoiceApp.Domain.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApp.Application.Features.Customers.Command;
 
 public class CreateCustomerCommandHandler(
-    IApplicationDbContext context,
+    ICustomerRepository customerRepository,
     ILogger<CreateCustomerCommandHandler> logger,
     IUserService userService)
     : IRequestHandler<CreateCustomerCommand, Guid>
@@ -31,9 +31,8 @@ public class CreateCustomerCommandHandler(
             {
                 throw new DomainException("First name and last name are required for individual customers");
             }
-            var emailExists = await context.Customers
-                .AnyAsync(c => c.UserId == command.UserId && c.Email == command.Email, cancellationToken);
 
+            var emailExists = await customerRepository.EmailExistsForUserAsync(userId, command.Email, cancellationToken);
             if (emailExists)
             {
                 throw new DomainException($"Customer with email '{command.Email}' already exists.");
@@ -55,8 +54,8 @@ public class CreateCustomerCommandHandler(
                 Country = command.Country
             };
 
-            await context.Customers.AddAsync(customer, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
+            await customerRepository.AddAsync(customer, cancellationToken);
+            await customerRepository.SaveChangesAsync(cancellationToken);
 
             return customer.Id;
         }

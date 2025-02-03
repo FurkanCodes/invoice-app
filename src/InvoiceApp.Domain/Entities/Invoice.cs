@@ -10,8 +10,8 @@ public class Invoice
     public decimal Amount { get; private set; }
     public DateTime DueDate { get; private set; }
 
-    public bool IsDeleted { get; private set; }
-    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     [Required]
     [StringLength(20)]
@@ -52,11 +52,6 @@ public class Invoice
     public Guid? CustomerId { get; private set; }
     public Customer Customer { get; set; } = null!;
 
-    public void SoftDelete()
-    {
-        IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
-    }
 
 
     private Invoice()

@@ -10,6 +10,7 @@ public static class ApplicationExtensions
         // Register MediatR and handlers from this assembly
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationExtensions).Assembly));
         services.AddScoped<ICurrencyValidator, CurrencyValidatorService>();
+        services.AddHttpContextAccessor();
         return services;
     }
 }

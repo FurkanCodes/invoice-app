@@ -8,15 +8,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using FluentEmail.Core;
 using System.Net;
-
-public class AuthService(AppDbContext context, ITokenService tokenService, IEmailService emailService,
+using InvoiceApp.Application.Common.Interfaces;
+public class AuthService(
+    IAuthRepository authRepository,
+    ITokenService tokenService,
+    IEmailService emailService,
     IHttpContextAccessor httpContextAccessor) : IAuthService
 {
+  private readonly IAuthRepository _authRepository = authRepository;
+  private readonly ITokenService _tokenService = tokenService;
+  private readonly IEmailService _emailService = emailService;
+  private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+
   public async Task<ApiResponse<AuthResponseDto>> Register(UserRegisterDto userDto)
   {
     try
     {
-      if (await context.Users.AnyAsync(u => u.Email == userDto.Email))
+      if (await _authRepository.EmailExistsAsync(userDto.Email))
       {
         return new ApiResponse<AuthResponseDto>
         {
@@ -37,24 +45,23 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
         IsEmailVerified = false
       };
 
-      context.Users.Add(user);
-      await context.SaveChangesAsync();
+      await _authRepository.AddUserAsync(user);
+      await _authRepository.SaveChangesAsync();
 
-      var (token, expiration) = tokenService.GenerateAccessToken(user);
-      var refreshToken = tokenService.GenerateRefreshToken();
+      var (token, expiration) = _tokenService.GenerateAccessToken(user);
+      var refreshToken = _tokenService.GenerateRefreshToken();
       var verificationCode = GenerateVerificationCode();
 
-      await context.RefreshTokens.AddAsync(new RefreshToken
+      await _authRepository.AddRefreshTokenAsync(new RefreshToken
       {
         Token = refreshToken,
         UserId = user.Id,
         ExpiresAt = DateTime.UtcNow.AddDays(7),
         User = user
       });
-      await context.SaveChangesAsync();
+      await _authRepository.SaveChangesAsync();
 
-      // Send verification email through email service
-      var emailResult = await emailService.SendVerificationEmail(user.Email);
+      var emailResult = await _emailService.SendVerificationEmail(user.Email);
       if (!emailResult.IsSuccess)
       {
         Console.WriteLine($"Email failed: {emailResult.Message}");
@@ -66,7 +73,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
       {
         IsSuccess = true,
         StatusCode = HttpStatusCode.Created,
-        Message = "Registration successful. Please heck your email.",
+        Message = "Registration successful. Please check your email.",
         Data = new AuthResponseDto
         {
           Token = token,
@@ -83,7 +90,7 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
         IsSuccess = false,
         StatusCode = HttpStatusCode.InternalServerError,
         Message = "Registration failed",
-        Errors = new List<string> { "SERVER_ERROR" }
+        Errors = ["SERVER_ERROR"]
       };
     }
   }
@@ -92,18 +99,8 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
   {
     try
     {
-      var user = await context.Users
-          .FirstOrDefaultAsync(u => u.Email == userDto.Email);
-      if (!user!.IsEmailVerified)
-      {
-        return new ApiResponse<AuthResponseDto>
-        {
-          IsSuccess = false,
-          StatusCode = HttpStatusCode.Unauthorized,
-          Message = "Email is not verified",
-          Errors = ["EMAIL_VERIFICATION_ERROR"]
-        };
-      }
+      var user = await _authRepository.GetUserByEmailAsync(userDto.Email);
+
       if (user == null)
       {
         return new ApiResponse<AuthResponseDto>
@@ -112,6 +109,17 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
           StatusCode = HttpStatusCode.Unauthorized,
           Message = "Invalid credentials",
           Errors = ["INVALID_CREDENTIALS"]
+        };
+      }
+
+      if (!user.IsEmailVerified)
+      {
+        return new ApiResponse<AuthResponseDto>
+        {
+          IsSuccess = false,
+          StatusCode = HttpStatusCode.Unauthorized,
+          Message = "Email is not verified",
+          Errors = ["EMAIL_VERIFICATION_ERROR"]
         };
       }
 
@@ -129,17 +137,17 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
         };
       }
 
-      var (accessToken, accessExpiration) = tokenService.GenerateAccessToken(user);
-      var refreshToken = tokenService.GenerateRefreshToken();
+      var (accessToken, accessExpiration) = _tokenService.GenerateAccessToken(user);
+      var refreshToken = _tokenService.GenerateRefreshToken();
 
-      await context.RefreshTokens.AddAsync(new RefreshToken
+      await _authRepository.AddRefreshTokenAsync(new RefreshToken
       {
         Token = refreshToken,
         UserId = user.Id,
         ExpiresAt = DateTime.UtcNow.AddDays(7),
         User = user
       });
-      await context.SaveChangesAsync();
+      await _authRepository.SaveChangesAsync();
 
       SetRefreshTokenCookie(refreshToken);
 
@@ -164,14 +172,14 @@ public class AuthService(AppDbContext context, ITokenService tokenService, IEmai
         IsSuccess = false,
         StatusCode = HttpStatusCode.InternalServerError,
         Message = "Login failed",
-        Errors = new List<string> { "SERVER_ERROR" }
+        Errors = ["SERVER_ERROR"]
       };
     }
   }
 
   private void SetRefreshTokenCookie(string refreshToken)
   {
-    httpContextAccessor.HttpContext?.Response.Cookies.Append(
+    _httpContextAccessor.HttpContext?.Response.Cookies.Append(
         "refreshToken",
         refreshToken,
         new CookieOptions

@@ -5,22 +5,20 @@ using Microsoft.EntityFrameworkCore;
 
 using InvoiceApp.Application.Interfaces;
 using InvoiceApp.Application.Common.Interfaces;
+using InvoiceApp.Application.Common.Interfaces.Repositories;
 
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetInvoiceById
 {
-    public class GetInvoiceByIdQueryHandler(IApplicationDbContext context)
+    public class GetInvoiceByIdQueryHandler(IInvoiceRepository invoiceRepository)
             : IRequestHandler<GetInvoiceByIdQuery, InvoiceDto>
     {
-        private readonly IApplicationDbContext _context = context;
-
         public async Task<InvoiceDto> Handle(
             GetInvoiceByIdQuery query,
             CancellationToken ct)
         {
             // Fetch invoice from database
-            var invoice = await _context.Invoices
-                .AsNoTracking()
-                .FirstOrDefaultAsync(i => i.Id == query.InvoiceId, ct) ?? throw new DomainException("Invoice not found");
+            var invoice = await invoiceRepository.GetByIdAsync(query.InvoiceId, ct);
+
 
             return new InvoiceDto
             {

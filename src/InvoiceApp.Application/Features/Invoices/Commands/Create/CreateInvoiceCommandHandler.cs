@@ -1,65 +1,70 @@
 using InvoiceApp.Application.Common.Interfaces;
-using InvoiceApp.Application.Interfaces;
+using InvoiceApp.Application.Common.Interfaces.Repositories;
 using InvoiceApp.Domain.Entities;
 using InvoiceApp.Domain.Exceptions;
-
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-
-namespace InvoiceApp.Application.Features.Invoices.Commands;
-public class CreateInvoiceCommandHandler(
-    IApplicationDbContext context,
-    ICurrencyValidator currencyValidator,
-    IUserService userService,
-    ILogger<CreateInvoiceCommandHandler> logger) : IRequestHandler<CreateInvoiceCommand, Guid>
+namespace InvoiceApp.Application.Features.Invoices.Commands
 {
-
-
-    public async Task<Guid> Handle(
-      CreateInvoiceCommand command,
-      CancellationToken cancellationToken)
+    public class CreateInvoiceCommandHandler(
+        IInvoiceRepository invoiceRepository,
+        IUnitOfWork unitOfWork,
+        ICurrencyValidator currencyValidator,
+        IUserService userService,
+        ILogger<CreateInvoiceCommandHandler> logger) : IRequestHandler<CreateInvoiceCommand, Guid>
     {
-        try
-        {
-            var userId = userService.UserId;
-            logger.LogInformation("Creating invoice for user: {UserId}", userId);
+        private readonly IInvoiceRepository _invoiceRepository = invoiceRepository;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly ICurrencyValidator _currencyValidator = currencyValidator;
+        private readonly IUserService _userService = userService;
+        private readonly ILogger<CreateInvoiceCommandHandler> _logger = logger;
 
-            if (!currencyValidator.IsValidCode(command.Currency))
+        public async Task<Guid> Handle(CreateInvoiceCommand command, CancellationToken cancellationToken)
+        {
+            var userId = _userService.UserId;
+            _logger.LogInformation("Creating invoice for user: {UserId}", userId);
+
+            if (!_currencyValidator.IsValidCode(command.Currency))
             {
                 throw new DomainException("Invalid currency code");
             }
 
-            // Validate user exists
-            var userExists = await context.Users
-                .AnyAsync(u => u.Id == userId, cancellationToken);
-
-            if (!userExists)
-            {
-                throw new DomainException($"User with ID {userId} not found");
-            }
-
-            // Check for duplicate invoice number
-            var invoiceNumberExists = await context.Invoices
-                .AnyAsync(i => i.InvoiceNumber == command.InvoiceNumber, cancellationToken);
-
-            if (invoiceNumberExists)
+            // Check for duplicate invoice number using repository abstraction
+            if (await _invoiceRepository.InvoiceNumberExistsAsync(command.InvoiceNumber, cancellationToken))
             {
                 throw new DomainException($"Invoice number '{command.InvoiceNumber}' already exists.");
             }
 
-            if (command.CustomerId.HasValue)
-            {
-                var customerExists = await context.Customers
-                    .AnyAsync(c => c.Id == command.CustomerId.Value, cancellationToken);
-                if (!customerExists)
-                {
-                    throw new DomainException($"Customer with ID {command.CustomerId} not found.");
-                }
-            }
 
-            // Create invoice with CustomerId
+            // Validate user exists
+            // var userExists = await _context.Users
+            //     .AnyAsync(u => u.Id == userId, cancellationToken);
+
+            // if (!userExists)
+            // {
+            //     throw new DomainException($"User with ID {userId} not found");
+            // }
+
+            // // Check for duplicate invoice number
+            // var invoiceNumberExists = await _context.Invoices
+            //     .AnyAsync(i => i.InvoiceNumber == command.InvoiceNumber, cancellationToken);
+
+            // if (invoiceNumberExists)
+            // {
+            //     throw new DomainException($"Invoice number '{command.InvoiceNumber}' already exists.");
+            // }
+
+            // if (command.CustomerId.HasValue)
+            // {
+            //     var customerExists = await _context.Customers
+            //         .AnyAsync(c => c.Id == command.CustomerId.Value, cancellationToken);
+            //     if (!customerExists)
+            //     {
+            //         throw new DomainException($"Customer with ID {command.CustomerId} not found.");
+            //     }
+            // }
+            // // Create the invoice
             var invoice = new Invoice(
                 userId,
                 command.ClientName,
@@ -73,22 +78,17 @@ public class CreateInvoiceCommandHandler(
                 command.PaymentTerms,
                 command.InvoiceNumber,
                 command.IssueDate,
-                command.CustomerId // Include CustomerId
+                command.CustomerId // Optional customer info
             );
 
+            await _invoiceRepository.AddAsync(invoice, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            await context.Invoices.AddAsync(invoice, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Successfully created invoice {InvoiceId} for user {UserId}",
-                invoice.Id, userId);
+            _logger.LogInformation("Successfully created invoice {InvoiceId} for user {UserId}", invoice.Id, userId);
 
             return invoice.Id;
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error creating invoice: {ErrorMessage}", ex.Message);
-            throw;
-        }
     }
 }
+
+
