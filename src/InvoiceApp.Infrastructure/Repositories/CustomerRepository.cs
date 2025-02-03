@@ -1,6 +1,7 @@
 using System.Net;
 using InvoiceApp.Application.Common.Interfaces.Repositories;
 using InvoiceApp.Application.Features.Auth.DTOs;
+using InvoiceApp.Application.Features.Invoices.Queries;
 using InvoiceApp.Domain.Entities;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +49,29 @@ namespace InvoiceApp.Infrastructure.Repositories
             };
         }
 
+        public async Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, CancellationToken cancellationToken)
+        {
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : pageSize;
 
+            var baseQuery = _context.Customers
+                .Where(i => !i.IsDeleted);
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+            var items = await baseQuery
+             .OrderBy(i => i.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            return new PagedResponse<Customer>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
     }
 }
