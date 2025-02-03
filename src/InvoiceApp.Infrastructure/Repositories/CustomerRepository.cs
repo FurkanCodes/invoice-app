@@ -57,13 +57,13 @@ namespace InvoiceApp.Infrastructure.Repositories
             var baseQuery = _context.Customers
                 .Where(i => !i.IsDeleted);
             var totalCount = await baseQuery.CountAsync(cancellationToken);
-
             var items = await baseQuery
-             .OrderBy(i => i.CreatedAt)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+                 .Include(c => c.Invoices) // Explicitly load invoices
+                 .OrderBy(i => i.CreatedAt)
+                 .Skip((pageNumber - 1) * pageSize)
+                 .Take(pageSize)
+                 .AsNoTracking()
+                 .ToListAsync(cancellationToken);
 
             return new PagedResponse<Customer>
             {

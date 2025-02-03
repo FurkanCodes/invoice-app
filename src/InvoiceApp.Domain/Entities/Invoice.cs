@@ -47,12 +47,11 @@ public class Invoice
     public Guid UserId { get; set; }
 
     // Make the navigation property nullable
-    public User? User { get; set; }
+    public User User { get; set; }
 
+    // Relationships
     public Guid? CustomerId { get; private set; }
     public Customer Customer { get; set; } = null!;
-
-
 
     private Invoice()
     {

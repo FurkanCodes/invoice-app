@@ -66,7 +66,10 @@ public class AppDbContext : DbContext, IUnitOfWork
                 .IsRequired();
             entity.Property(i => i.IssueDate)
                 .IsRequired();
-
+            entity.HasOne(ev => ev.User)
+                   .WithMany(u => u.Invoices)
+                   .HasForeignKey(ev => ev.UserId)
+                   .OnDelete(DeleteBehavior.Cascade);
 
         });
 
@@ -90,26 +93,13 @@ public class AppDbContext : DbContext, IUnitOfWork
 
               // Add unique index on email
               entity.HasIndex(u => u.Email)
-
                       .IsUnique();
+
               entity.Property(u => u.IsEmailVerified);
+
+
+
           });
-
-        modelBuilder.Entity<Invoice>()
-                    .HasOne(i => i.User)
-                    .WithMany(u => u.Invoices)
-                    .HasForeignKey(i => i.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-        // Add any additional configuration like indexes
-        modelBuilder.Entity<Invoice>()
-            .HasIndex(i => i.InvoiceNumber)
-            .IsUnique();
-
-        modelBuilder.Entity<Invoice>()
-            .Property(i => i.Amount)
-            .HasPrecision(18, 2);
-        base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<RefreshToken>(entity =>
  {
@@ -187,6 +177,7 @@ public class AppDbContext : DbContext, IUnitOfWork
                 .WithMany(u => u.Customers)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
             entity.Property(i => i.IsDeleted)
                       .IsRequired()
                       .HasDefaultValue(false);
@@ -231,8 +222,8 @@ public class AppDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => e.Email);
 
             // Configure table name and columns
-            entity.ToTable("Customers");
-            entity.Property(e => e.Id).HasColumnName("CustomerId");
+            entity.Property(i => i.Id)
+              .HasColumnName("CustomerId");
 
         });
 
