@@ -187,6 +187,12 @@ public class AppDbContext : DbContext, IUnitOfWork
                 .WithMany(u => u.Customers)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(i => i.IsDeleted)
+                      .IsRequired()
+                      .HasDefaultValue(false);
+
+            entity.Property(i => i.DeletedAt)
+                .IsRequired(false);
 
             // Configure enums
             entity.Property(e => e.Type)

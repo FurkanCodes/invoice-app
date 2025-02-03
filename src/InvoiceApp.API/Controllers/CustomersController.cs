@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Features.Customers.Commands;
 using InvoiceApp.Application.Features.Customers.Dtos;
+using InvoiceApp.Application.Features.Invoices.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,6 +40,14 @@ namespace InvoiceApp.API.Controllers
 
             var customerId = await _mediator.Send(command);
             return Ok(customerId);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCustomer(Guid id)
+        {
+            var command = new DeleteCustomerCommand { CustomerId = id };
+            await _mediator.Send(command);
+            return NoContent();
         }
     }
 }

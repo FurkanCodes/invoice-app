@@ -1,4 +1,6 @@
+using System.Net;
 using InvoiceApp.Application.Common.Interfaces.Repositories;
+using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Features.Invoices.Queries;
 using InvoiceApp.Domain.Entities;
 using InvoiceApp.Infrastructure.Persistence;
@@ -12,7 +14,7 @@ namespace InvoiceApp.Infrastructure.Repositories
 
         public async Task<Invoice> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            return await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+            return await _context.Invoices.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
 
         }
@@ -28,8 +30,7 @@ namespace InvoiceApp.Infrastructure.Repositories
         }
 
 
-
-        public async Task SoftDeleteAsync(Invoice invoice, CancellationToken cancellationToken)
+        public async Task<ApiResponse<AuthResponseDto>> SoftDeleteAsync(Invoice invoice, CancellationToken cancellationToken)
         {
             if (invoice != null)
             {
@@ -37,6 +38,14 @@ namespace InvoiceApp.Infrastructure.Repositories
                 invoice.DeletedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);
             }
+
+
+            return new ApiResponse<AuthResponseDto>
+            {
+                IsSuccess = true,
+                StatusCode = HttpStatusCode.OK,
+                Message = "Invoice soft deleted successfully"
+            };
         }
 
 

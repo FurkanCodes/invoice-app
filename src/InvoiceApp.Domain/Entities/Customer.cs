@@ -10,6 +10,8 @@ public class Customer
     // Customer Type (Required)
     public CustomerType Type { get; set; }  // Enum: Organization/Person
 
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
     // Name Fields
     public string? OrganizationName { get; set; }
     public string? FirstName { get; set; }
