@@ -98,5 +98,21 @@ namespace InvoiceApp.Infrastructure.Repositories
                 PageSize = pageSize
             };
         }
+
+        public async Task<ApiResponse<Customer>> GetCustomerById(Guid customerId, CancellationToken cancellationToken)
+        {
+            var baseQuery = _context.Invoices
+                    .Where(i => i.CustomerId == customerId && !i.IsDeleted);
+
+            var customer = await baseQuery.FirstOrDefaultAsync(i => i.Id == customerId);
+
+            return new ApiResponse<Customer>
+            {
+                IsSuccess = true,
+                StatusCode = HttpStatusCode.OK,
+                Message = "Success"
+
+            };
+        }
     }
 }

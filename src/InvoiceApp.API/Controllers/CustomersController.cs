@@ -90,5 +90,23 @@ namespace InvoiceApp.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{customerId}")]
+        [ProducesResponseType(typeof(PagedResponse<Customer>), 200)] // Use a DTO!
+        public async Task<IActionResult> GetByCustomerId(
+     Guid customerId
+    )
+        {
+
+            // You might have a GetInvoicesByCustomerIdQuery and handler.
+            var query = new GetCustomerByIdQuery
+            {
+                CustomerId = customerId,
+
+            };
+
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
     }
 }

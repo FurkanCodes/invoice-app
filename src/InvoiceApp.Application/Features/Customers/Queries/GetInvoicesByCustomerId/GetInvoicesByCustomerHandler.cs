@@ -18,11 +18,11 @@ public class GetInvoicesByCustomerIdHandler : IRequestHandler<GetInvoicesByCusto
 
     public async Task<PagedResponse<InvoiceDto>> Handle(GetInvoicesByCustomerIdQuery request, CancellationToken cancellationToken)
     {
-        // 1. Get the invoices (as entities) from the repository
+
         var pagedResponse = await _customerRepository.GetInvoicesByCustomerIdAsync(
             request.CustomerId, request.PageNumber, request.PageSize, cancellationToken);
 
-        // 2. Manually map the Invoice entities to InvoiceDto objects
+
         var invoiceDtos = new List<InvoiceDto>();
         foreach (var invoice in pagedResponse.Items)
         {
@@ -52,7 +52,7 @@ public class GetInvoicesByCustomerIdHandler : IRequestHandler<GetInvoicesByCusto
             });
         }
 
-        // 3. Return a new PagedResponse containing the DTOs
+
         return new PagedResponse<InvoiceDto>
         {
             Items = invoiceDtos,

@@ -17,5 +17,6 @@ namespace InvoiceApp.Application.Common.Interfaces.Repositories
         Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, Guid userId, CancellationToken cancellationToken);
 
         Task<PagedResponse<Invoice>> GetInvoicesByCustomerIdAsync(Guid customerId, int pageNumber, int pageSize, CancellationToken cancellationToken); // Correct return type (Invoice, not InvoiceDto)
+        Task<ApiResponse<Customer>> GetCustomerById(Guid customerId, CancellationToken cancellationToken);
     }
 }
