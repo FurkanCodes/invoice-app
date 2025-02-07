@@ -50,7 +50,7 @@ public class Invoice
     public User User { get; set; }
 
     // Relationships
-    public Guid? CustomerId { get; private set; }
+    public Guid CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
 
     private Invoice()
@@ -90,7 +90,7 @@ public class Invoice
         ClientName = clientName;
         UserId = userId;
         Amount = amount;
-        CustomerId = customerId;
+        CustomerId = (Guid)customerId;
         DueDate = dueDate;
 
         TaxId = taxId;

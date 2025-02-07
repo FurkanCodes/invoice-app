@@ -11,9 +11,11 @@ using InvoiceApp.Domain.Entities;
 using InvoiceApp.Application.Features.Invoices.Queries.GetAllInvoices;
 namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllCustomers
 {
-    public class GetAllCustomersHandler(ICustomerRepository customerRepository)
-        : IRequestHandler<GetAllCustomersQuery, PagedResponse<Customer>>
+    public class GetAllCustomersHandler(ICustomerRepository customerRepository, IUserService userService)
+: IRequestHandler<GetAllCustomersQuery, PagedResponse<Customer>>
     {
+
+
         public async Task<PagedResponse<Customer>> Handle(
             GetAllCustomersQuery query,
             CancellationToken ct)
@@ -22,7 +24,10 @@ namespace InvoiceApp.Application.Features.Invoices.Queries.GetAllCustomers
             if (query.PageNumber < 1) query.PageNumber = 1;
             if (query.PageSize < 1) query.PageSize = 10;
 
-            return await customerRepository.GetAllCustomers(query.PageNumber, query.PageSize, ct);
+
+            Guid userId = userService.UserId;
+
+            return await customerRepository.GetAllCustomers(query.PageNumber, query.PageSize, userId, ct); // Pass userId
         }
     }
 }

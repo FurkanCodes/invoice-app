@@ -42,7 +42,7 @@ public class Customer
     public DateTime UpdatedAt { get; set; }
 
     // Relationships
-    public User User { get; set; } = null!;
+
     public ICollection<Invoice> Invoices { get; set; } = [];
 }
 

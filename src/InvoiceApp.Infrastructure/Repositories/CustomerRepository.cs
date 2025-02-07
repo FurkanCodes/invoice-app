@@ -48,17 +48,16 @@ namespace InvoiceApp.Infrastructure.Repositories
                 Message = "customer soft deleted successfully"
             };
         }
-
-        public async Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, CancellationToken cancellationToken)
+        public async Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, Guid userId, CancellationToken cancellationToken) // Add userId
         {
             pageNumber = pageNumber < 1 ? 1 : pageNumber;
             pageSize = pageSize < 1 ? 10 : pageSize;
 
             var baseQuery = _context.Customers
-                .Where(i => !i.IsDeleted);
+                .Where(i => !i.IsDeleted && i.UserId == userId);
             var totalCount = await baseQuery.CountAsync(cancellationToken);
             var items = await baseQuery
-                 .Include(c => c.Invoices) // Explicitly load invoices
+
                  .OrderBy(i => i.CreatedAt)
                  .Skip((pageNumber - 1) * pageSize)
                  .Take(pageSize)
@@ -66,6 +65,32 @@ namespace InvoiceApp.Infrastructure.Repositories
                  .ToListAsync(cancellationToken);
 
             return new PagedResponse<Customer>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<PagedResponse<Invoice>> GetInvoicesByCustomerIdAsync(Guid customerId, int pageNumber, int pageSize, CancellationToken cancellationToken)
+        {
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+            // Notice NO .Include(i => i.Customer) here.  We get customer data separately if needed.
+            var baseQuery = _context.Invoices
+                .Where(i => i.CustomerId == customerId && !i.IsDeleted);
+
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
+            var items = await baseQuery
+                 .OrderBy(i => i.IssueDate) // Or your desired ordering
+                 .Skip((pageNumber - 1) * pageSize)
+                 .Take(pageSize)
+                 .AsNoTracking()
+                 .ToListAsync(cancellationToken);
+
+
+            return new PagedResponse<Invoice>
             {
                 Items = items,
                 TotalCount = totalCount,

@@ -1,5 +1,7 @@
+// ICustomerRepository.cs
+using InvoiceApp.Application.Common.Interfaces.Repositories;
 using InvoiceApp.Application.Features.Auth.DTOs;
-using InvoiceApp.Application.Features.Invoices.Queries;
+using InvoiceApp.Application.Features.Invoices.Queries; // Make sure this is present
 using InvoiceApp.Domain.Entities;
 
 namespace InvoiceApp.Application.Common.Interfaces.Repositories
@@ -12,6 +14,8 @@ namespace InvoiceApp.Application.Common.Interfaces.Repositories
         Task SaveChangesAsync(CancellationToken cancellationToken);
 
         Task<ApiResponse<AuthResponseDto>> SoftDeleteAsync(Customer customer, CancellationToken cancellationToken);
-        Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, CancellationToken cancellationToken);
+        Task<PagedResponse<Customer>> GetAllCustomers(int pageNumber, int pageSize, Guid userId, CancellationToken cancellationToken);
+
+        Task<PagedResponse<Invoice>> GetInvoicesByCustomerIdAsync(Guid customerId, int pageNumber, int pageSize, CancellationToken cancellationToken); // Correct return type (Invoice, not InvoiceDto)
     }
 }

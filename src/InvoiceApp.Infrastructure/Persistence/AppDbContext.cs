@@ -66,10 +66,10 @@ public class AppDbContext : DbContext, IUnitOfWork
                 .IsRequired();
             entity.Property(i => i.IssueDate)
                 .IsRequired();
-            entity.HasOne(ev => ev.User)
-                   .WithMany(u => u.Invoices)
-                   .HasForeignKey(ev => ev.UserId)
-                   .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.User)  // ✅ Use "i" for Invoice
+            .WithMany(u => u.Invoices)
+            .HasForeignKey(i => i.UserId) // Correctly references Invoice.UserId
+            .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_Invoices_Users");
 
         });
 
@@ -172,11 +172,7 @@ public class AppDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
 
-            // Configure relationships
-            entity.HasOne(c => c.User)
-                .WithMany(u => u.Customers)
-                .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+
 
             entity.Property(i => i.IsDeleted)
                       .IsRequired()
