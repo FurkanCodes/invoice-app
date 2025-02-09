@@ -143,13 +143,12 @@ public class EmailService(
                 return InvalidTokenResponse();
             }
 
-            var hashedToken = HashToken(token);
-            logger.LogDebug("Verifying token hash: {TokenHash}", hashedToken);
+
 
             var verification = await dbContext.EmailVerifications
                 .Include(ev => ev.User)
                 .FirstOrDefaultAsync(ev =>
-                    ev.VerificationTokenHash == hashedToken &&
+                    ev.VerificationTokenHash == token &&
                     ev.Status == EmailVerificationStatus.Pending &&
                     ev.ExpiresAt > DateTime.UtcNow &&
                     ev.User!.IsEmailVerified == false);
