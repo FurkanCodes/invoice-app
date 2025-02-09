@@ -32,7 +32,7 @@ public static class InfrastructureExtensions
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         var emailConfig = configuration.GetSection("Email");
         services
-               .AddFluentEmail("MS_gqBoKZ@trial-3z0vklom1w1g7qrx.mlsender.net")
+               .AddFluentEmail(emailConfig["Username"])
             .AddSmtpSender(new SmtpClient
             {
                 Host = emailConfig["Host"],
