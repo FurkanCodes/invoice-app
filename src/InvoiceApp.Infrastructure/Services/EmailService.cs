@@ -148,10 +148,7 @@ public class EmailService(
             var verification = await dbContext.EmailVerifications
                 .Include(ev => ev.User)
                 .FirstOrDefaultAsync(ev =>
-                    ev.VerificationTokenHash == token &&
-                    ev.Status == EmailVerificationStatus.Pending &&
-                    ev.ExpiresAt > DateTime.UtcNow &&
-                    ev.User!.IsEmailVerified == false);
+                    ev.VerificationTokenHash == token);
 
             if (verification == null)
             {
