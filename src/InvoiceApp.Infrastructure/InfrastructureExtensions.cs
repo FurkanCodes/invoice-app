@@ -32,15 +32,20 @@ public static class InfrastructureExtensions
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         var emailConfig = configuration.GetSection("Email");
         services
-        .AddFluentEmail(emailConfig["SenderEmail"])
-        .AddSmtpSender(new SmtpClient
-        {
-            Host = emailConfig["Host"] ?? "localhost",
-            Port = int.Parse(emailConfig["Port"] ?? "25"),
-            EnableSsl = bool.Parse(emailConfig["EnableSsl"] ?? "false"),
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-            UseDefaultCredentials = false  // Add this line
-        });
+               .AddFluentEmail("MS_gqBoKZ@trial-3z0vklom1w1g7qrx.mlsender.net")
+            .AddSmtpSender(new SmtpClient
+            {
+                Host = emailConfig["Host"],
+                Port = int.Parse(emailConfig["Port"]),
+                EnableSsl = true,  // Force SSL to true
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(
+                    emailConfig["Username"],
+                    emailConfig["Password"]
+                ),
+                Timeout = 30000  // Add timeout value
+            });
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddQuartz();

@@ -9,50 +9,80 @@ using System.Net;
 using System.Security.Cryptography;
 
 using FluentEmail.Core.Models;
+using Microsoft.Extensions.Logging;
+using System.Text;
 public class EmailService(
     IFluentEmail fluentEmail,
     AppDbContext dbContext,
-    IConfiguration config)
+    IConfiguration config, ILogger<EmailService> logger)
     : IEmailService
 {
     private const int MAX_ATTEMPTS = 3;
     private static readonly TimeSpan VERIFICATION_VALIDITY = TimeSpan.FromHours(24);
-    private readonly byte[] _hmacKey = Convert.FromBase64String(
-        config["Security:HmacKey"] ?? throw new InvalidOperationException("Missing HmacKey configuration")
-    );
+
 
     public async Task<ApiResponse<object>> SendVerificationEmail(string? email)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null) return new ApiResponse<object> { /* Error response */ };
-
-        var (verification, token, code) = CreateVerificationRecord(user.Id);
-
-        // Send email immediately after creating record
-        var verificationLink = $"{config["BaseUrl"]}/api/auth/verify-email-with-token?token={WebUtility.UrlEncode(token)}";
-        var template = BuildEmailTemplate(verificationLink, code);
-
-        var emailResponse = await fluentEmail
-            .To(user.Email)
-            .Subject("Complete Your Registration")
-            .Body(template, isHtml: true)
-            .SendAsync();
-
-        verification.Status = emailResponse.Successful
-            ? EmailVerificationStatus.Sent
-            : EmailVerificationStatus.Failed;
-
-        dbContext.EmailVerifications.Add(verification);
-        await dbContext.SaveChangesAsync();
-
-        return new ApiResponse<object>
+        try
         {
-            IsSuccess = emailResponse.Successful,
-            StatusCode = emailResponse.Successful ? HttpStatusCode.OK : HttpStatusCode.BadGateway,
-            Message = emailResponse.Successful ? "Verification email sent" : "Failed to send email"
-        };
-    }
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return new ApiResponse<object>
+            {
+                IsSuccess = false,
+                StatusCode = HttpStatusCode.NotFound,
+                Message = "User not found"
+            };
 
+            var (verification, token, code) = CreateVerificationRecord(user.Id);
+            var verificationLink = $"{config["BaseUrl"]}/api/auth/verify-email-with-token?token={Uri.EscapeDataString(token)}";
+            var template = BuildEmailTemplate(verificationLink, code);
+
+
+            var emailResponse = await fluentEmail
+
+                .To(user.Email)
+                .Subject("Complete Your Registration")
+                .Body(template, isHtml: true)
+                .SendAsync();
+
+            if (!emailResponse.Successful)
+            {
+                // Log the error details
+                var errorMessage = $"Failed to send email: {emailResponse.ErrorMessages.FirstOrDefault()}";
+                Console.WriteLine(errorMessage);  // Or use proper logging
+
+                return new ApiResponse<object>
+                {
+                    IsSuccess = false,
+                    StatusCode = HttpStatusCode.BadGateway,
+                    Message = errorMessage
+                };
+            }
+
+            verification.Status = EmailVerificationStatus.Sent;
+            dbContext.EmailVerifications.Add(verification);
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<object>
+            {
+                IsSuccess = true,
+                StatusCode = HttpStatusCode.OK,
+                Message = "Verification email sent successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            // Log the exception
+            Console.WriteLine($"Exception while sending email: {ex}");  // Or use proper logging
+
+            return new ApiResponse<object>
+            {
+                IsSuccess = false,
+                StatusCode = HttpStatusCode.InternalServerError,
+                Message = $"Failed to send verification email: {ex.Message}"
+            };
+        }
+    }
 
 
     private async Task<ApiResponse<object>> CompleteVerification(EmailVerification verification)
@@ -108,34 +138,47 @@ public class EmailService(
         try
         {
             if (string.IsNullOrEmpty(token))
-                return new ApiResponse<object>
-                {
-                    IsSuccess = false,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Message = "Token is required"
-                };
+            {
+                logger.LogWarning("Empty token received");
+                return InvalidTokenResponse();
+            }
+
+            var hashedToken = HashToken(token);
+            logger.LogDebug("Verifying token hash: {TokenHash}", hashedToken);
 
             var verification = await dbContext.EmailVerifications
                 .Include(ev => ev.User)
                 .FirstOrDefaultAsync(ev =>
-                    ev.VerificationTokenHash == token &&
-                    ev.Status == EmailVerificationStatus.Sent &&
-                    ev.ExpiresAt > DateTime.UtcNow);
+                    ev.VerificationTokenHash == hashedToken &&
+                    ev.Status == EmailVerificationStatus.Pending &&
+                    ev.ExpiresAt > DateTime.UtcNow &&
+                    ev.User!.IsEmailVerified == false);
 
             if (verification == null)
             {
+                logger.LogWarning("Invalid verification attempt for token: {Token}", token);
+                return InvalidTokenResponse();
+            }
+
+            if (verification.Attempts >= MAX_ATTEMPTS)
+            {
+                logger.LogWarning("Max attempts reached for token: {Token}", token);
                 return new ApiResponse<object>
                 {
                     IsSuccess = false,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Message = "Invalid or expired token"
+                    StatusCode = HttpStatusCode.TooManyRequests,
+                    Message = "Maximum verification attempts exceeded"
                 };
             }
+
+            verification.Attempts++;
+            await dbContext.SaveChangesAsync();
 
             return await CompleteVerification(verification);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Token verification failed");
             return new ApiResponse<object>
             {
                 IsSuccess = false,
@@ -145,6 +188,17 @@ public class EmailService(
         }
     }
 
+    private static string HashToken(string token)
+    {
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToBase64String(hashBytes);
+    }
+    private static ApiResponse<object> InvalidTokenResponse() => new()
+    {
+        IsSuccess = false,
+        StatusCode = HttpStatusCode.BadRequest,
+        Message = "Invalid or expired verification token"
+    };
     public async Task<ApiResponse<object>> VerifyEmailWithCode(string? code)
     {
         try

@@ -91,9 +91,8 @@ public class AuthController(IMediator mediator) : ControllerBase
         return Ok($"Protected resource accessed by user: {userId}");
     }
 
-  [HttpPost("verify-email-with-token")]
+    [HttpGet("verify-email-with-token")] // Changed from HttpPost
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
     {
         var command = new VerifyEmailWithTokenCommand { Token = token };
