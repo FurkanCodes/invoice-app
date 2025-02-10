@@ -50,7 +50,7 @@ public static class InfrastructureExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IUserService, UserService>();
-
+        services.AddScoped<IUserRepository, UserRepository>();
         return services;
     }
 }

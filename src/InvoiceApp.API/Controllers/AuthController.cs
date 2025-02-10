@@ -3,13 +3,14 @@ using InvoiceApp.Application.Features.Auth.Commands;
 using InvoiceApp.Application.Features.Auth.DTOs;
 using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
 using InvoiceApp.Application.Features.EmailVerification.Commands;
+using InvoiceApp.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
-public class AuthController(IMediator mediator) : ControllerBase
+public class AuthController(IMediator mediator, IUserService userService) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
 
@@ -91,7 +92,7 @@ public class AuthController(IMediator mediator) : ControllerBase
         return Ok($"Protected resource accessed by user: {userId}");
     }
 
-  [HttpPost("verify-email-with-token")]
+    [HttpPost("verify-email-with-token")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
@@ -119,4 +120,42 @@ public class AuthController(IMediator mediator) : ControllerBase
         }
         return Ok(result);
     }
+
+    [HttpGet("verification-status")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CheckVerificationStatus()
+    {
+        try
+        {
+            var userId = userService.UserId;
+            var query = new CheckVerificationStatusQuery(userId);
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized(new ApiResponse<object>
+            {
+                StatusCode = HttpStatusCode.Unauthorized,
+                Message = "User is not authenticated",
+                IsSuccess = false,
+                Data = null
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "An error occurred while checking verification status",
+                IsSuccess = false,
+                Data = null
+            });
+        }
+    }
+
 }
+
+
