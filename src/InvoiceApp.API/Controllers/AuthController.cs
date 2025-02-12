@@ -14,117 +14,51 @@ public class AuthController(IMediator mediator, IUserService userService) : Cont
 {
     private readonly IMediator _mediator = mediator;
 
-    /// <summary>
-    /// Register a new user
-    /// </summary>
-    /// <param name="command">User registration details</param>
-    /// <returns>Authentication response with tokens</returns>
     [HttpPost("register")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterUserCommand command)
     {
         var result = await _mediator.Send(command);
-        return Ok(result);
+        return StatusCode((int)result.StatusCode, result);
     }
 
-    /// <summary>
-    /// Login with existing credentials
-    /// </summary>
-    /// <param name="request">Login credentials</param>
-    /// <returns>Authentication response with tokens</returns>
     [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] UserLoginQuery request)
     {
-        return await _mediator.Send(request);
+        var result = await _mediator.Send(request);
+        return StatusCode((int)result.StatusCode, result);
     }
-
-    /// <summary>
-    /// Logout the current user
-    /// </summary>
-    /// <returns>Success response</returns>
-    [HttpPost("logout")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Logout()
+[HttpPost("logout")]
+[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+public async Task<ActionResult<ApiResponse<object>>> Logout()
+{
+    var result = await _mediator.Send(new LogoutCommand());
+    return Ok(new ApiResponse<object>
     {
-        var result = await _mediator.Send(new LogoutCommand());
+        StatusCode = HttpStatusCode.OK,
+        Message = "Successfully logged out",
+        IsSuccess = true,
+        Data = result
+    });
+}
 
-        var response = new ApiResponse<object>
-        {
-            StatusCode = HttpStatusCode.OK,
-            Message = "Successfully logged out.",
-            IsSuccess = true,
-            Data = result
-        };
-        return Ok(response);
-    }
-
-    /// <summary>
-    /// Refresh the access token using refresh token from cookipe
-    /// </summary>
-    /// <returns>New authentication tokens</returns>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status401Unauthorized)]
-
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RefreshToken(
-    [FromBody] RefreshTokenRequestDto? request = null)
+        [FromBody] RefreshTokenRequestDto? request = null)
     {
         var result = await _mediator.Send(new RefreshTokenQuery(request?.RefreshToken));
-        return Ok(result);
-    }
-
-
-
-
-    /// <summary>
-    /// Test endpoint that requires authentication
-    /// </summary>
-    /// <returns>Success message if authenticated</returns>
-    [HttpGet("protected")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult<string> Protected()
-    {
-        var userId = User.FindFirst("uid")?.Value;
-        return Ok($"Protected resource accessed by user: {userId}");
-    }
-
-    [HttpGet("verify-email-with-token")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
-    {
-        var command = new VerifyEmailWithTokenCommand { Token = token };
-        var result = await _mediator.Send(command);
-        return HandleVerificationResult(result);
-    }
-
-    [HttpPost("verify-email-with-code")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> VerifyEmailWithCode([FromQuery] string code)
-    {
-        var command = new VerifyEmailWithCodeCommand { Code = code };
-        var result = await _mediator.Send(command);
-        return HandleVerificationResult(result);
-    }
-
-    private IActionResult HandleVerificationResult(ApiResponse<object> result)
-    {
-        if (!result.IsSuccess)
-        {
-            return StatusCode((int)result.StatusCode, result);
-        }
-        return Ok(result);
+        return StatusCode((int)result.StatusCode, result);
     }
 
     [HttpGet("verification-status")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CheckVerificationStatus()
     {
         try
@@ -132,30 +66,59 @@ public class AuthController(IMediator mediator, IUserService userService) : Cont
             var userId = userService.UserId;
             var query = new CheckVerificationStatusQuery(userId);
             var result = await _mediator.Send(query);
-            return Ok(result);
+            return StatusCode((int)result.StatusCode, result);
         }
         catch (UnauthorizedAccessException)
         {
-            return Unauthorized(new ApiResponse<object>
+            return StatusCode((int)HttpStatusCode.Unauthorized, new ApiResponse
             {
                 StatusCode = HttpStatusCode.Unauthorized,
                 Message = "User is not authenticated",
                 IsSuccess = false,
-                Data = null
+                Errors = new List<string> { "UNAUTHORIZED" }
             });
         }
         catch (Exception ex)
         {
-            return BadRequest(new ApiResponse<object>
+            return StatusCode((int)HttpStatusCode.BadRequest, new ApiResponse
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "An error occurred while checking verification status",
                 IsSuccess = false,
-                Data = null
+                Errors = new List<string> { ex.Message }
             });
         }
     }
-
+    [HttpGet("verify-email-with-token")]
+[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
+{
+    var command = new VerifyEmailWithTokenCommand { Token = token };
+    var result = await _mediator.Send(command);
+    return HandleVerificationResult(result);
 }
+
+[HttpPost("verify-email-with-code")]
+[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+public async Task<IActionResult> VerifyEmailWithCode([FromQuery] string code)
+{
+    var command = new VerifyEmailWithCodeCommand { Code = code };
+    var result = await _mediator.Send(command);
+    return HandleVerificationResult(result);
+}
+
+private IActionResult HandleVerificationResult(ApiResponse<object> result)
+{
+    if (!result.IsSuccess)
+    {
+        return StatusCode((int)result.StatusCode, result);
+    }
+    return Ok(result);
+}
+}
+
+
 
 
