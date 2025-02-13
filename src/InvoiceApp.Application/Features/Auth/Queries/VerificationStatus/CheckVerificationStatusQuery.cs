@@ -2,10 +2,12 @@ using MediatR;
 
 public class CheckVerificationStatusQuery : IRequest<ApiResponse<object>>
 {
-    public Guid UserId { get; }
+    public string? Email { get; }
+    public string? VerificationToken { get; }
 
-    public CheckVerificationStatusQuery(Guid userId)
+    public CheckVerificationStatusQuery(string? email = null, string? verificationToken = null)
     {
-        UserId = userId;
+        Email = email;
+        VerificationToken = verificationToken;
     }
 }

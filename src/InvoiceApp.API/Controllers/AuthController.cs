@@ -5,12 +5,13 @@ using InvoiceApp.Application.Features.Auth.Queries.RefreshToken;
 using InvoiceApp.Application.Features.EmailVerification.Commands;
 using InvoiceApp.Infrastructure.Services;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
-public class AuthController(IMediator mediator, IUserService userService) : ControllerBase
+public class AuthController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
 
@@ -55,40 +56,26 @@ public async Task<ActionResult<ApiResponse<object>>> Logout()
         return StatusCode((int)result.StatusCode, result);
     }
 
-    [HttpGet("verification-status")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> CheckVerificationStatus()
+[AllowAnonymous]
+[HttpGet("verification-status")]
+[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+public async Task<IActionResult> CheckVerificationStatus([FromQuery] string? email = null, [FromQuery] string? token = null)
+{
+    if (string.IsNullOrEmpty(email) && string.IsNullOrEmpty(token))
     {
-        try
+        return BadRequest(new ApiResponse
         {
-            var userId = userService.UserId;
-            var query = new CheckVerificationStatusQuery(userId);
-            var result = await _mediator.Send(query);
-            return StatusCode((int)result.StatusCode, result);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return StatusCode((int)HttpStatusCode.Unauthorized, new ApiResponse
-            {
-                StatusCode = HttpStatusCode.Unauthorized,
-                Message = "User is not authenticated",
-                IsSuccess = false,
-                Errors = new List<string> { "UNAUTHORIZED" }
-            });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode((int)HttpStatusCode.BadRequest, new ApiResponse
-            {
-                StatusCode = HttpStatusCode.BadRequest,
-                Message = "An error occurred while checking verification status",
-                IsSuccess = false,
-                Errors = new List<string> { ex.Message }
-            });
-        }
+            StatusCode = HttpStatusCode.BadRequest,
+            Message = "Either email or verification token must be provided",
+            IsSuccess = false
+        });
     }
+
+    var query = new CheckVerificationStatusQuery(email, token);
+    var result = await _mediator.Send(query);
+    return StatusCode((int)result.StatusCode, result);
+}
     [HttpGet("verify-email-with-token")]
 [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]

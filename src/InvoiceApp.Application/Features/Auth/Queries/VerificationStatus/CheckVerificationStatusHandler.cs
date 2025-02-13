@@ -1,3 +1,5 @@
+using System.Net;
+using InvoiceApp.Domain.Entities;
 using MediatR;
 
 public class CheckVerificationStatusQueryHandler : IRequestHandler<CheckVerificationStatusQuery, ApiResponse<object>>
@@ -11,27 +13,58 @@ public class CheckVerificationStatusQueryHandler : IRequestHandler<CheckVerifica
 
     public async Task<ApiResponse<object>> Handle(CheckVerificationStatusQuery request, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-
-        if (user == null)
+        if (!string.IsNullOrEmpty(request.Email))
         {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return new ApiResponse<object>
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Message = "User not found",
+                    IsSuccess = false
+                };
+            }
+
             return new ApiResponse<object>
             {
-                StatusCode = System.Net.HttpStatusCode.BadRequest,
-                Message = "User not found",
-                IsSuccess = false,
-                Data = null
+                StatusCode = HttpStatusCode.OK,
+                Message = "Verification status retrieved successfully",
+                IsSuccess = true,
+                Data = new { IsVerified = user.IsEmailVerified }
+            };
+        }
+        else if (!string.IsNullOrEmpty(request.VerificationToken))
+        {
+            var verification = await _userRepository.GetEmailVerificationByTokenAsync(request.VerificationToken);
+            if (verification == null)
+            {
+                return new ApiResponse<object>
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Message = "Invalid or expired verification token",
+                    IsSuccess = false
+                };
+            }
+
+            return new ApiResponse<object>
+            {
+                StatusCode = HttpStatusCode.OK,
+                Message = "Verification status retrieved successfully",
+                IsSuccess = true,
+                Data = new 
+                { 
+                    IsVerified = verification.Status == EmailVerificationStatus.Success,
+                    Status = verification.Status.ToString()
+                }
             };
         }
 
-        bool isVerified = await _userRepository.IsEmailConfirmedAsync(request.UserId);
-
         return new ApiResponse<object>
         {
-            StatusCode = System.Net.HttpStatusCode.OK,
-            Message = "Verification status retrieved successfully",
-            IsSuccess = true,
-            Data = new { IsVerified = isVerified }
+            StatusCode = HttpStatusCode.BadRequest,
+            Message = "Either email or verification token must be provided",
+            IsSuccess = false
         };
     }
 }
