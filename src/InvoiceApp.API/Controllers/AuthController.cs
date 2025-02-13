@@ -102,12 +102,13 @@ public async Task<IActionResult> VerifyEmailWithToken([FromQuery] string token)
 [HttpPost("verify-email-with-code")]
 [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-public async Task<IActionResult> VerifyEmailWithCode([FromQuery] string code)
+public async Task<IActionResult> VerifyEmailWithCode([FromBody] VerifyEmailRequest request)
 {
-    var command = new VerifyEmailWithCodeCommand { Code = code };
+    var command = new VerifyEmailWithCodeCommand { Code = request.Code };
     var result = await _mediator.Send(command);
     return HandleVerificationResult(result);
 }
+
 
 private IActionResult HandleVerificationResult(ApiResponse<object> result)
 {
